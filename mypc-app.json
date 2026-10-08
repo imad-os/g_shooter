@@ -1,0 +1,12 @@
+{
+  "mypc": 1,
+  "id": "steel-vigil",
+  "name": "Steel Vigil",
+  "description": "Tactical top-down shooter: smart enemies, cover, 14 weapons, bosses, story campaign and battle royale",
+  "type": "game",
+  "entry": "index.html",
+  "icon": "icon.svg",
+  "version": "1.0.0",
+  "scores": true,
+  "config": { "difficulty": "veteran", "brBots": 11 }
+}
