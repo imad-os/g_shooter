@@ -378,8 +378,11 @@ var World = (function () {
 
     /* ---------------- field of view (fog of war) ---------------- */
 
-    W.computeVis = function (px, py, R, smokeTest) {
-        var st = ++W.visStamp, ptx = Math.floor(px / TILE), pty = Math.floor(py / TILE), w = W.w, d = W.fogData.data;
+    // field of view of one or more viewers: beginVis(), addVis() for each, endVis() writes the fog
+    var vb = [0, 0, 0, 0];
+    W.beginVis = function () { W.visStamp++; vb[0] = 1e9; vb[1] = 1e9; vb[2] = -1; vb[3] = -1; };
+    W.addVis = function (px, py, R, smokeTest) {
+        var st = W.visStamp, ptx = Math.floor(px / TILE), pty = Math.floor(py / TILE), w = W.w;
         var x0 = Math.max(0, ptx - R), x1 = Math.min(w - 1, ptx + R), y0 = Math.max(0, pty - R), y1 = Math.min(W.h - 1, pty + R), R2 = R * R;
         for (var y = y0; y <= y1; y++) for (var x = x0; x <= x1; x++) {
             var ddx = x - ptx, ddy = y - pty;
@@ -390,14 +393,19 @@ var World = (function () {
                 W.vis[i] = st; W.explored[i] = 1;
             }
         }
-        // fog alpha per tile: visible 0, explored dim, unknown dark
-        var a0 = Math.max(0, ptx - R - 2), a1 = Math.min(w - 1, ptx + R + 2), b0 = Math.max(0, pty - R - 2), b1 = Math.min(W.h - 1, pty + R + 2);
-        for (y = b0; y <= b1; y++) for (x = a0; x <= a1; x++) {
+        vb[0] = Math.min(vb[0], ptx - R - 2); vb[1] = Math.min(vb[1], pty - R - 2); vb[2] = Math.max(vb[2], ptx + R + 2); vb[3] = Math.max(vb[3], pty + R + 2);
+    };
+    // fog alpha per tile: visible 0, explored dim, unknown dark
+    W.endVis = function () {
+        var st = W.visStamp, w = W.w, d = W.fogData.data;
+        var a0 = Math.max(0, vb[0]), a1 = Math.min(w - 1, vb[2]), b0 = Math.max(0, vb[1]), b1 = Math.min(W.h - 1, vb[3]);
+        for (var y = b0; y <= b1; y++) for (var x = a0; x <= a1; x++) {
             var j = y * w + x;
             d[j * 4 + 3] = W.vis[j] === st ? 0 : (W.explored[j] ? 120 : 205);
         }
         W.fogDirty = true;
     };
+    W.computeVis = function (px, py, R, smokeTest) { W.beginVis(); W.addVis(px, py, R, smokeTest); W.endVis(); };
     W.visible = function (x, y) { var tx = Math.floor(x / TILE), ty = Math.floor(y / TILE); return inb(tx, ty) && W.vis[ty * W.w + tx] === W.visStamp; };
     W.flushFog = function () { if (W.fogDirty) { W.fogCtx.putImageData(W.fogData, 0, 0); W.fogDirty = false; } };
     W.revealAll = function () { for (var i = 0; i < W.n; i++) { W.explored[i] = 1; W.fogData.data[i * 4 + 3] = 0; } W.fogDirty = true; };

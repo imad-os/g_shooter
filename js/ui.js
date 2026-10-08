@@ -12,12 +12,14 @@ var UI = (function () {
         var s = save.settings;
         U.settings.shake = s.shake !== false; U.settings.music = s.music !== false; U.settings.hints = s.hints !== false;
         U.settings.diff = DIFFS[s.diff] ? s.diff : (DIFFS[MyPC.app_config.difficulty] ? MyPC.app_config.difficulty : 'veteran');
+        var maps = Array.isArray(s.maps) ? s.maps : [];
+        Input.maps[0] = Input.cleanMap(maps[0]); Input.maps[1] = Input.cleanMap(maps[1]);
         applyDiff();
         $('hint').innerHTML = '<span>' + esc(T('hintMove')) + '</span><span>' + esc(T('hintFire')) + '</span><span>' + esc(T('hintTac')) + '</span><span>' + esc(T('hintBack')) + '</span>';
     };
     function applyDiff() { Game.diff = DIFFS[U.settings.diff]; Game.diffName = U.settings.diff; }
     function persist() {
-        U.save.settings = { shake: U.settings.shake, music: U.settings.music, hints: U.settings.hints, diff: U.settings.diff };
+        U.save.settings = { shake: U.settings.shake, music: U.settings.music, hints: U.settings.hints, diff: U.settings.diff, maps: [Input.maps[0], Input.maps[1]] };
         MyPC.save('save', U.save);
     }
     U.persist = persist;
@@ -65,6 +67,95 @@ var UI = (function () {
     };
     U.back = function () { if (onBack) { SFX.play('uiBack', 0.6); onBack(); } };
     U.inMenu = function () { return !!U.screen; };
+    // only the controller in charge moves through the menus: Player 1's, or the player who opened the tactical screen
+    U.menuDev = function () { return U.screen === 'tactical' ? Input.devOf(U.tacSlot) : Input.p1; };
+
+    /* ---------------- controllers ---------------- */
+
+    // first screen: whoever presses OK / A becomes Player 1; other controllers are then ignored
+    U.splash = function () {
+        hudVisible(false);
+        MyPC.setMenu([]);
+        if (Game.mode !== 'attract' || Game.state === 'idle') Game.startBR(7, true);
+        SFX.setMix('menu');
+        Input.p1 = null;
+        screen('splash', '<div class="logo center"><div class="emblem">' + EMBLEM + '</div><div><h1>STEEL VIGIL</h1><h2>' + esc(T('subtitle')) + '</h2></div></div>' +
+            '<div class="press"><span class="key">OK</span><span class="key round">A</span><b>' + esc(T('pressStart')) + '</b></div>' +
+            '<div class="foot"><span></span><span class="credits">Art: Kenney (CC0) · Sound: OpenGameArt (CC0) · Music: VividReality (CC-BY 3.0)</span></div>', null);
+        MyPC.announce('Steel Vigil. ' + T('pressStart'));
+    };
+    U.claimP1 = function (dev) {
+        Input.p1 = dev;
+        if (Input.p2 === dev) Input.p2 = null;
+        Game.coop = !!Input.p2;
+        SFX.play('uiOk', 0.6);
+        U.title();
+    };
+
+    // waiting for a button on the controller that will be Player 1 or Player 2
+    U.capturing = null;
+    function capture(slot) {
+        U.capturing = { slot: slot, t: 600 };
+        var m = document.createElement('div');
+        m.className = 'modal'; m.id = 'capture';
+        m.innerHTML = '<div class="panel"><div class="press"><span class="key">OK</span><span class="key round">A</span></div><b>' + esc(T('waitPress')) + ' ' +
+            esc(T(slot ? 'player2' : 'player1')) + '</b><small id="cap-t">10</small></div>';
+        $('screen').appendChild(m);
+        MyPC.announce(T('waitPress') + ' ' + T(slot ? 'player2' : 'player1'));
+    }
+    function endCapture() { U.capturing = null; var m = $('capture'); if (m) m.remove(); }
+    U.captured = function (dev) {
+        var slot = U.capturing.slot;
+        if (slot === 1 && dev === Input.p1) { SFX.play('uiError', 0.6); U.toastSmall(T('alreadyP1')); MyPC.announce(T('alreadyP1')); return; }
+        endCapture();
+        if (slot === 0) { if (Input.p2 === dev) Input.p2 = null; Input.p1 = dev; }
+        else Input.p2 = dev;
+        Game.coop = !!Input.p2;
+        SFX.play('uiOk', 0.6);
+        U.playersScreen(slot ? '#c-p2' : '#c-p1');
+    };
+    U.cancelCapture = function () { if (!U.capturing) return; endCapture(); SFX.play('uiBack', 0.5); };
+
+    U.playersScreen = function (focusSel) {
+        var p2 = Input.p2;
+        screen('players', '<div class="head"><h3>' + esc(T('players')) + '</h3></div><div class="panel list ctl">' +
+            '<div class="btn f set" id="c-p1"><b><i class="pdot p1"></i>' + esc(T('player1')) + '</b><span class="val">' + esc(Input.devName(Input.p1)) + '</span></div>' +
+            '<div class="btn f set" id="c-p2"><b><i class="pdot p2"></i>' + esc(T('player2')) + '</b><span class="val">' + esc(p2 ? Input.devName(p2) : T('addP2')) + '</span></div>' +
+            (p2 ? '<div class="btn f set" id="c-rm"><b>' + esc(T('removeP2')) + '</b><span class="val"></span></div>' : '') +
+            '<div class="btn f set" id="c-m1"><b>' + esc(T('remapFor')) + ' ' + esc(T('player1')) + '</b><span class="val">›</span></div>' +
+            '<div class="btn f set' + (p2 ? '' : ' off') + '" id="c-m2"><b>' + esc(T('remapFor')) + ' ' + esc(T('player2')) + '</b><span class="val">›</span></div>' +
+            '<p class="note">' + esc(T('coopNote')) + '</p>' +
+            '</div><div class="row"><div class="btn f" id="b-back"><b>' + esc(T('back')) + '</b></div></div>', U.title, focusSel);
+        bind('#c-p1', function () { capture(0); });
+        bind('#c-p2', function () { capture(1); });
+        bind('#c-rm', function () { Input.p2 = null; Game.coop = false; U.playersScreen('#c-p2'); });
+        bind('#c-m1', function () { U.remap(0); });
+        bind('#c-m2', function () { if (Input.p2) U.remap(1); });
+        bind('#b-back', U.title);
+    };
+
+    U.remap = function (slot, focusSel) {
+        var m = Input.maps[slot], h = '<div class="head"><h3>' + esc(T('remap')) + '</h3><span class="tag"><i class="pdot p' + (slot + 1) + '"></i>' +
+            esc(T(slot ? 'player2' : 'player1')) + ' · ' + esc(Input.devName(Input.devOf(slot))) + '</span></div><div class="panel list ctl">';
+        for (var k = 0; k < Input.CMDS.length; k++) {
+            var c = Input.CMDS[k];
+            h += '<div class="btn f set" id="r-' + c + '" data-c="' + c + '"><b>' + esc(T('cmd_' + c)) + '</b><span class="val">' + esc(Input.btnName(m[c])) + '</span></div>';
+        }
+        h += '<div class="btn f set" id="r-reset"><b>' + esc(T('resetDef')) + '</b><span class="val"></span></div>';
+        if (Input.devOf(slot) === 'keys' && m.fire !== 'jump') h += '<p class="note warn">' + esc(T('remoteWarn')) + '</p>';
+        h += '</div><div class="row"><div class="btn f" id="b-back"><b>' + esc(T('back')) + '</b></div></div>';
+        screen('remap', h, function () { U.playersScreen(slot ? '#c-m2' : '#c-m1'); }, focusSel);
+        bind('.set[data-c]', function (el) {
+            var c = el.dataset.c, opts = Input.OPTIONS[c], cur = Input.maps[slot][c];
+            var next = opts[(opts.indexOf(cur) + 1) % opts.length];
+            if (!Input.assign(slot, c, next)) { SFX.play('uiError', 0.5); return; }
+            persist();
+            U.remap(slot, '#r-' + c);
+            MyPC.announce(T('cmd_' + c) + ': ' + Input.btnName(next));
+        });
+        bind('#r-reset', function () { Input.maps[slot] = Input.defMap(); persist(); U.remap(slot, '#r-reset'); });
+        bind('#b-back', function () { U.playersScreen(slot ? '#c-m2' : '#c-m1'); });
+    };
 
     function screen(name, html, back, first) {
         U.screen = name;
@@ -82,8 +173,9 @@ var UI = (function () {
     /* ---------------- title ---------------- */
 
     U.title = function () {
+        if (!Input.p1) { U.splash(); return; }
         hudVisible(false);
-        MyPC.setMenu([]);
+        MyPC.setMenu([{ id: 'controller', label: T('changeCtrl') }]);
         if (Game.mode !== 'attract') Game.startBR(7, true);
         SFX.setMix('menu');
         var sv = U.save, name = info.profile && info.profile.name ? info.profile.name : '';
@@ -93,6 +185,7 @@ var UI = (function () {
             '<div class="menu">' +
             '<div class="btn f big" id="m-story"><b>' + esc(T('story')) + '</b><small>' + prog + ' / 12</small></div>' +
             '<div class="btn f big" id="m-br"><b>' + esc(T('br')) + '</b><small>' + esc(T('wins')) + ' ' + sv.stats.brWins + '</small></div>' +
+            '<div class="btn f" id="m-players"><b>' + esc(T('players')) + '</b><small>' + esc(Input.devName(Input.p1)) + (Input.p2 ? ' + ' + esc(T('coop')) : '') + '</small></div>' +
             '<div class="btn f" id="m-arsenal"><b>' + esc(T('arsenal')) + '</b></div>' +
             '<div class="btn f" id="m-settings"><b>' + esc(T('settings')) + '</b></div>' +
             '<div class="btn f" id="m-howto"><b>' + esc(T('howto')) + '</b></div>' +
@@ -103,6 +196,7 @@ var UI = (function () {
         bind('#m-story', function () { U.campaign(); });
         bind('#m-br', function () { U.brScreen(); });
         bind('#m-arsenal', function () { U.loadout(false); });
+        bind('#m-players', function () { U.playersScreen(); });
         bind('#m-settings', function () { U.settingsScreen(); });
         bind('#m-howto', function () { U.howto(); });
         MyPC.announce('Steel Vigil. ' + T('story'));
@@ -111,7 +205,8 @@ var UI = (function () {
     /* ---------------- campaign ---------------- */
 
     U.campaign = function (focusIdx) {
-        var sv = U.save, h = '<div class="head"><h3>' + esc(T('story')) + '</h3><span class="tag">' + esc(T('difficulty')) + ': ' + esc(T(U.settings.diff)) + '</span></div><div class="camp"><div class="ops">';
+        var sv = U.save, h = '<div class="head"><h3>' + esc(T('story')) + '</h3><span class="tag">' + esc(T('difficulty')) + ': ' + esc(T(U.settings.diff)) + '</span>' +
+            (Input.p2 ? '<span class="tag coop"><i class="pdot p1"></i><i class="pdot p2"></i>' + esc(T('coop')) + '</span>' : '') + '</div><div class="camp"><div class="ops">';
         for (var o = 0; o < CAMPAIGN.length; o++) {
             var O = CAMPAIGN[o];
             h += '<div class="op"><div class="opname"><small>' + esc(T('operation')) + ' ' + (o + 1) + '</small><b>' + esc(O.name) + '</b></div><div class="stages">';
@@ -219,6 +314,7 @@ var UI = (function () {
 
     U.deploy = function (stageIdx) {
         closeScreen();
+        Game.coop = !!Input.p2;
         Game.startStory((stageIdx / 3) | 0, stageIdx % 3, U.save);
         startHud();
         var O = CAMPAIGN[(stageIdx / 3) | 0];
@@ -237,13 +333,15 @@ var UI = (function () {
             '<p>' + esc(T('brDesc')) + '</p>' +
             '<div class="kv"><span>' + esc(T('bots')) + '</span><b>' + brBots() + '</b></div>' +
             '<div class="kv"><span>' + esc(T('wins')) + '</span><b class="gold">' + st.brWins + '</b></div>' +
-            '<div class="kv"><span>' + esc(T('bestPlace')) + '</span><b>' + (st.brBest ? '#' + st.brBest : '–') + '</b></div></div>' +
+            '<div class="kv"><span>' + esc(T('bestPlace')) + '</span><b>' + (st.brBest ? '#' + st.brBest : '–') + '</b></div>' +
+            (Input.p2 ? '<p class="note">' + esc(T('coopNote')) + '</p>' : '') + '</div>' +
             '<div class="row"><div class="btn f primary" id="b-deploy"><b>' + esc(T('deploy')) + '</b></div><div class="btn f" id="b-back"><b>' + esc(T('back')) + '</b></div></div>', U.title);
         bind('#b-deploy', U.startBR);
         bind('#b-back', U.title);
     };
     U.startBR = function () {
         closeScreen();
+        Game.coop = false;
         Game.startBR(brBots(), false);
         startHud();
         U.toast(T('br'), '#ffffff', T('alive') + ' ' + Game.alive);
@@ -277,12 +375,17 @@ var UI = (function () {
 
     /* ---------------- in game: tactical screen ---------------- */
 
-    U.openTactical = function () {
-        if (Game.state !== 'play' || !Game.alivePlayer()) return;
+    U.tacSlot = 0;
+    U.openTactical = function (slot) {
+        slot = slot || 0;
+        var p = Game.players[slot];
+        if (Game.state !== 'play' || !p || !p.on) return;
+        U.tacSlot = slot;
         Game.state = 'tactical';
         hudVisible(false);
         SFX.play('uiOpen', 0.6);
-        var p = Game.player, h = '<div class="tac"><div class="tleft"><div class="head"><h3>' + esc(T('tactical')) + '</h3></div><div class="slots">';
+        var h = '<div class="tac"><div class="tleft"><div class="head"><h3>' + esc(T('tactical')) + '</h3>' +
+            (Game.coop ? '<span class="tag"><i class="pdot p' + (slot + 1) + '"></i>' + esc(T(slot ? 'player2' : 'player1')) + '</span>' : '') + '</div><div class="slots">';
         for (var s = 0; s < 4; s++) {
             var wid = p.w[s], wd = wid ? WEAPONS[wid] : null;
             h += '<div class="slot f' + (wd ? '' : ' off') + (s === p.cur ? ' eq' : '') + '" data-s="' + s + '"><small>' + esc(T(CATS[s])) + '</small>' +
@@ -296,9 +399,9 @@ var UI = (function () {
         h += '</div><div class="row"><div class="btn f primary" id="t-resume"><b>' + esc(T('resume')) + '</b></div></div></div>' +
             '<div class="tright panel"><div class="maphead"><b>' + esc(T('map')) + '</b>' + mapLegend() + '</div><canvas id="tmap" width="760" height="560"></canvas></div></div>';
         screen('tactical', h, U.closeTactical, '.slot.eq');
-        bind('.slot[data-s]', function (el) { Game.selectSlot(+el.dataset.s); U.closeTactical(); });
-        bind('.slot[data-n]', function (el) { Game.playerNade(+el.dataset.n); U.closeTactical(); });
-        bind('#t-med', function () { Game.useMedkit(); U.closeTactical(); });
+        bind('.slot[data-s]', function (el) { Game.selectSlot(+el.dataset.s, p); U.closeTactical(); });
+        bind('.slot[data-n]', function (el) { Game.playerNade(+el.dataset.n, p); U.closeTactical(); });
+        bind('#t-med', function () { Game.useMedkit(p); U.closeTactical(); });
         bind('#t-resume', U.closeTactical);
         var mc = $('tmap');
         Render.drawMap(mc.getContext('2d'), mc.width, mc.height, true);
@@ -311,7 +414,7 @@ var UI = (function () {
     U.closeTactical = function () {
         closeScreen();
         SFX.play('uiClose', 0.5);
-        if (Game.state === 'tactical') { Game.state = 'play'; Game.fireLatch = true; }
+        if (Game.state === 'tactical') { Game.state = 'play'; var tp = Game.players[U.tacSlot]; if (tp) tp.latch = true; }
         if (Game.state === 'play') hudVisible(true);
         U.hud.dirty = true;
     };
@@ -373,13 +476,17 @@ var UI = (function () {
         hudVisible(true); lastHud = {}; U.hud.dirty = true; feedList.length = 0; $('feed').innerHTML = '';
         $('hint').style.display = U.settings.hints ? '' : 'none'; $('hint').classList.remove('fade'); U.hintT = 0;
         $('boss').style.display = 'none';
-        MyPC.setMenu([{ id: 'tactical', label: T('arsenalMap') }, { id: 'restart', label: Game.mode === 'br' ? T('br') : T('restart') }, { id: 'menu', label: T('menu') }]);
+        MyPC.setMenu([{ id: 'tactical', label: T('arsenalMap') }, { id: 'restart', label: Game.mode === 'br' ? T('br') : T('restart') }, { id: 'menu', label: T('menu') },
+            { id: 'controller', label: T('changeCtrl') }]);
+        $('p2hud').style.display = Game.players[1] ? '' : 'none';
+        $('hud').classList.toggle('coop', !!Game.players[1]);
     }
     U.restart = function () {
         if (Game.mode === 'story') U.deploy(U.lastStage);
         else if (Game.mode === 'br') U.startBR();
     };
-    U.quitToMenu = function () { closeScreen(); Game.state = 'idle'; U.title(); };
+    U.quitToMenu = function () { endCapture(); closeScreen(); Game.state = 'idle'; U.title(); };
+    U.changeController = function () { endCapture(); closeScreen(); Game.state = 'idle'; U.splash(); };
 
     function setTxt(id, v) { if (lastHud[id] !== v) { lastHud[id] = v; $(id).textContent = v; } }
     function setW(id, v) { v = Math.round(Math.max(0, Math.min(1, v)) * 1000) / 10; if (lastHud[id] !== v) { lastHud[id] = v; $(id).style.width = v + '%'; } }
@@ -390,6 +497,10 @@ var UI = (function () {
         for (var k = smallList.length - 1; k >= 0; k--) if (--smallList[k].t <= 0) { smallList[k].el.remove(); smallList.splice(k, 1); }
         for (k = feedList.length - 1; k >= 0; k--) if (--feedList[k].t <= 0) { feedList[k].el.remove(); feedList.splice(k, 1); }
         if (U.hintT !== undefined && ++U.hintT === 900) $('hint').classList.add('fade');
+        if (U.capturing) {
+            if (--U.capturing.t <= 0) { endCapture(); U.toastSmall(T('timeout')); SFX.play('uiBack', 0.5); }
+            else if (U.capturing.t % 60 === 0) { var ct = $('cap-t'); if (ct) ct.textContent = String(U.capturing.t / 60); }
+        }
     };
 
     U.updateHud = function () {
@@ -423,8 +534,16 @@ var UI = (function () {
         var b = G.boss && G.boss.on && G.boss.alerted ? G.boss : null;
         if (!!b !== !!lastHud.boss) { lastHud.boss = !!b; $('boss').style.display = b ? '' : 'none'; if (b) $('bossname').textContent = b.name; }
         if (b) setW('bossb', b.hp / b.maxHp);
-        var low = p.hp < 30;
+        var low = p.on && p.hp < 30;
         if (lastHud.low !== low) { lastHud.low = low; $('hpwrap').classList.toggle('low', low); }
+        var q = G.players[1];
+        if (q) {
+            var qs = q.on ? '' : T('backIn') + ' ' + Math.ceil(q.respawnT / 60) + ' s';
+            setW('p2hp', q.on ? q.hp / q.maxHp : 0); setW('p2ar', q.on ? q.armor / 100 : 0);
+            setTxt('p2w', q.on ? WEAPONS[q.w[q.cur]].name : qs);
+            setTxt('p2a', q.on ? q.mag[q.cur] + ' / ' + (q.res[q.cur] >= 999 ? '∞' : q.res[q.cur]) : '');
+        }
+        if (!p.on && G.players[1]) setTxt('wname', T('backIn') + ' ' + Math.ceil(p.respawnT / 60) + ' s');
     };
 
     U.toast = function (text, color, sub) {

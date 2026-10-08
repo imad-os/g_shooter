@@ -1,6 +1,15 @@
 /* Texts in English, French, Spanish and Arabic. Weapon, boss and operation names are proper nouns. */
 var I18N = {
     en: {
+        pressStart: 'Press OK or A on the controller you will play with', players: 'Players & Controllers',
+        player1: 'Player 1', player2: 'Player 2 (co-op)', changeCtrl: 'Change controller', addP2: 'Add Player 2', removeP2: 'Remove Player 2',
+        waitPress: 'Press OK or A on the controller for', alreadyP1: 'That controller is already Player 1', timeout: 'No button pressed',
+        remap: 'Remap buttons', cmd_fire: 'Fire', cmd_swap: 'Switch weapon', cmd_nade: 'Throw grenade', cmd_tac: 'Tactical screen',
+        btnA: 'A / OK', btnRun: 'B · X / Shift', btnCancel: 'Cancel / Backspace', btnAuto: 'Fire button, nothing in sight',
+        resetDef: 'Reset to defaults', remoteWarn: 'The TV remote only has OK: keep Fire on A / OK if you play with it.',
+        devRemote: 'TV remote / Keyboard', devKeys2: 'Keyboard 2 (WASD)', devPad: 'Gamepad', notAssigned: 'Not assigned',
+        coop: 'Co-op', coopNote: 'Player 2 joins Story missions as a support soldier. Battle Royale is solo.',
+        down: 'is down', backIn: 'back in', backOnline: 'is back in the fight', remapFor: 'Remap buttons for',
         subtitle: 'Tactical Operations', story: 'Story Campaign', br: 'Battle Royale', arsenal: 'Arsenal', settings: 'Settings',
         howto: 'How to Play', back: 'Back', deploy: 'Deploy', locked: 'Locked', operation: 'Operation', stage: 'Stage',
         boss: 'Boss', threat: 'Threat', reward: 'Reward', hostiles: 'Hostiles', difficulty: 'Difficulty',
@@ -28,12 +37,22 @@ var I18N = {
             ['Back', 'My PC pause menu: Arsenal & Map, Restart, Main menu.'],
             ['Bushes', 'Hide inside a bush: enemies only see you up close or when you shoot.'],
             ['Enemies', '? = suspicious, ! = they saw you. Unaware enemies take double damage. They hear gunshots, use cover, flank and throw grenades.'],
-            ['Gamepad / keyboard', 'Run button (X, Shift) switches weapon, Cancel (Backspace) throws a grenade.']
+            ['Gamepad / keyboard', 'A fires, B / X switches weapon, Cancel throws a grenade. Change them in Players & Controllers.'],
+            ['Co-op', 'Players & Controllers: add Player 2 with a second controller. A downed partner is back after 20 s; the mission fails only if both are down.']
         ],
         ops: ['Desert outpost held by a militia warlord.', 'Forest compound, perfect for snipers and ambushes.', 'Industrial harbor full of crates and fuel barrels.', 'The enemy headquarters. Everything they have left.'],
         cat: { pistol: 'Reliable sidearm, never runs dry', shotgun: 'Devastating up close', rifle: 'All-round automatic fire', sniper: 'One shot, one kill. Stand still to aim.' }
     },
     fr: {
+        pressStart: 'Appuyez sur OK ou A sur la manette qui va jouer', players: 'Joueurs et manettes',
+        player1: 'Joueur 1', player2: 'Joueur 2 (coop)', changeCtrl: 'Changer de manette', addP2: 'Ajouter le joueur 2', removeP2: 'Retirer le joueur 2',
+        waitPress: 'Appuyez sur OK ou A sur la manette du', alreadyP1: 'Cette manette est déjà celle du joueur 1', timeout: 'Aucun bouton pressé',
+        remap: 'Configurer les boutons', cmd_fire: 'Tirer', cmd_swap: 'Changer d\'arme', cmd_nade: 'Lancer une grenade', cmd_tac: 'Écran tactique',
+        btnA: 'A / OK', btnRun: 'B · X / Maj', btnCancel: 'Annuler / Retour arrière', btnAuto: 'Bouton de tir, rien en vue',
+        resetDef: 'Valeurs par défaut', remoteWarn: 'La télécommande n\'a que OK : gardez Tirer sur A / OK si vous jouez avec.',
+        devRemote: 'Télécommande / Clavier', devKeys2: 'Clavier 2 (ZQSD)', devPad: 'Manette', notAssigned: 'Non attribué',
+        coop: 'Coop', coopNote: 'Le joueur 2 rejoint les missions de campagne en soutien. Le Battle Royale se joue seul.',
+        down: 'est à terre', backIn: 'retour dans', backOnline: 'est de retour au combat', remapFor: 'Boutons du',
         subtitle: 'Opérations tactiques', story: 'Campagne', br: 'Battle Royale', arsenal: 'Arsenal', settings: 'Options',
         howto: 'Comment jouer', back: 'Retour', deploy: 'Déployer', locked: 'Verrouillé', operation: 'Opération', stage: 'Étape',
         boss: 'Boss', threat: 'Menace', reward: 'Récompense', hostiles: 'Ennemis', difficulty: 'Difficulté',
@@ -61,12 +80,22 @@ var I18N = {
             ['Retour', 'Menu pause de My PC : Arsenal et carte, Recommencer, Menu principal.'],
             ['Buissons', 'Cachez-vous dans un buisson : on ne vous voit que de près ou quand vous tirez.'],
             ['Ennemis', '? = méfiant, ! = repéré. Un ennemi surpris prend double dégâts. Ils entendent les tirs, se couvrent, contournent et lancent des grenades.'],
-            ['Manette / clavier', 'Bouton Courir (X, Maj) change d\'arme, Annuler (Retour arrière) lance une grenade.']
+            ['Manette / clavier', 'A tire, B / X change d\'arme, Annuler lance une grenade. Modifiable dans Joueurs et manettes.'],
+            ['Coop', 'Joueurs et manettes : ajoutez le joueur 2 avec une seconde manette. Un équipier à terre revient après 20 s ; la mission échoue seulement si les deux tombent.']
         ],
         ops: ['Avant-poste désertique tenu par un chef de milice.', 'Complexe forestier, idéal pour snipers et embuscades.', 'Port industriel plein de caisses et de barils.', 'Le quartier général ennemi. Tout ce qu\'il leur reste.'],
         cat: { pistol: 'Arme de poing fiable, munitions illimitées', shotgun: 'Dévastateur à courte portée', rifle: 'Tir automatique polyvalent', sniper: 'Une balle, un ennemi. Restez immobile.' }
     },
     es: {
+        pressStart: 'Pulsa OK o A en el mando con el que vas a jugar', players: 'Jugadores y mandos',
+        player1: 'Jugador 1', player2: 'Jugador 2 (cooperativo)', changeCtrl: 'Cambiar de mando', addP2: 'Añadir jugador 2', removeP2: 'Quitar jugador 2',
+        waitPress: 'Pulsa OK o A en el mando del', alreadyP1: 'Ese mando ya es del jugador 1', timeout: 'No se pulsó ningún botón',
+        remap: 'Configurar botones', cmd_fire: 'Disparar', cmd_swap: 'Cambiar de arma', cmd_nade: 'Lanzar granada', cmd_tac: 'Pantalla táctica',
+        btnA: 'A / OK', btnRun: 'B · X / Mayús', btnCancel: 'Cancelar / Retroceso', btnAuto: 'Botón de disparo, nada a la vista',
+        resetDef: 'Valores por defecto', remoteWarn: 'El mando de la TV solo tiene OK: deja Disparar en A / OK si juegas con él.',
+        devRemote: 'Mando de TV / Teclado', devKeys2: 'Teclado 2 (WASD)', devPad: 'Mando', notAssigned: 'Sin asignar',
+        coop: 'Cooperativo', coopNote: 'El jugador 2 se une a las misiones de campaña como apoyo. El Battle Royale es individual.',
+        down: 'ha caído', backIn: 'vuelve en', backOnline: 'vuelve al combate', remapFor: 'Botones del',
         subtitle: 'Operaciones tácticas', story: 'Campaña', br: 'Battle Royale', arsenal: 'Arsenal', settings: 'Ajustes',
         howto: 'Cómo jugar', back: 'Volver', deploy: 'Desplegar', locked: 'Bloqueado', operation: 'Operación', stage: 'Fase',
         boss: 'Jefe', threat: 'Amenaza', reward: 'Recompensa', hostiles: 'Enemigos', difficulty: 'Dificultad',
@@ -94,12 +123,22 @@ var I18N = {
             ['Atrás', 'Menú de pausa de My PC: Arsenal y mapa, Reiniciar, Menú principal.'],
             ['Arbustos', 'Escóndete en un arbusto: solo te ven de cerca o si disparas.'],
             ['Enemigos', '? = sospecha, ! = te vio. Un enemigo desprevenido recibe doble daño. Oyen disparos, se cubren, flanquean y lanzan granadas.'],
-            ['Mando / teclado', 'Botón Correr (X, Mayús) cambia de arma, Cancelar (Retroceso) lanza una granada.']
+            ['Mando / teclado', 'A dispara, B / X cambia de arma, Cancelar lanza una granada. Se cambian en Jugadores y mandos.'],
+            ['Cooperativo', 'Jugadores y mandos: añade al jugador 2 con otro mando. Un compañero caído vuelve a los 20 s; la misión solo falla si caen los dos.']
         ],
         ops: ['Puesto en el desierto controlado por un caudillo.', 'Complejo en el bosque, ideal para francotiradores.', 'Puerto industrial lleno de cajas y barriles.', 'El cuartel general enemigo. Todo lo que les queda.'],
         cat: { pistol: 'Arma corta fiable, munición infinita', shotgun: 'Devastadora a corta distancia', rifle: 'Fuego automático versátil', sniper: 'Un disparo, una baja. Quédate quieto.' }
     },
     ar: {
+        pressStart: 'اضغط OK أو A على يد التحكم التي ستلعب بها', players: 'اللاعبون ويد التحكم',
+        player1: 'اللاعب 1', player2: 'اللاعب 2 (تعاوني)', changeCtrl: 'تغيير يد التحكم', addP2: 'إضافة اللاعب 2', removeP2: 'إزالة اللاعب 2',
+        waitPress: 'اضغط OK أو A على يد تحكم', alreadyP1: 'يد التحكم هذه مستخدمة للاعب 1', timeout: 'لم يُضغط أي زر',
+        remap: 'تخصيص الأزرار', cmd_fire: 'إطلاق', cmd_swap: 'تبديل السلاح', cmd_nade: 'رمي قنبلة', cmd_tac: 'الشاشة التكتيكية',
+        btnA: 'A / OK', btnRun: 'B · X / Shift', btnCancel: 'إلغاء / Backspace', btnAuto: 'زر الإطلاق بلا هدف',
+        resetDef: 'استعادة الافتراضي', remoteWarn: 'جهاز التحكم عن بعد فيه زر OK فقط: أبقِ الإطلاق على A / OK إن كنت تلعب به.',
+        devRemote: 'جهاز التحكم / لوحة المفاتيح', devKeys2: 'لوحة مفاتيح 2 (WASD)', devPad: 'يد تحكم', notAssigned: 'غير محدد',
+        coop: 'تعاوني', coopNote: 'ينضم اللاعب 2 إلى مهام الحملة كجندي دعم. معركة البقاء فردية.',
+        down: 'سقط', backIn: 'يعود بعد', backOnline: 'عاد إلى القتال', remapFor: 'أزرار',
         subtitle: 'عمليات تكتيكية', story: 'الحملة', br: 'معركة البقاء', arsenal: 'الترسانة', settings: 'الإعدادات',
         howto: 'طريقة اللعب', back: 'رجوع', deploy: 'انطلاق', locked: 'مقفل', operation: 'العملية', stage: 'المرحلة',
         boss: 'الزعيم', threat: 'الخطر', reward: 'المكافأة', hostiles: 'الأعداء', difficulty: 'الصعوبة',
@@ -127,7 +166,8 @@ var I18N = {
             ['رجوع', 'قائمة الإيقاف في My PC: الترسانة والخريطة، إعادة، القائمة الرئيسية.'],
             ['الشجيرات', 'اختبئ في شجيرة: لا يراك العدو إلا عن قرب أو عندما تطلق النار.'],
             ['الأعداء', '؟ = مرتاب، ! = رآك. العدو الغافل يتلقى ضرراً مضاعفاً. يسمعون الطلقات، يحتمون، يلتفون ويرمون القنابل.'],
-            ['يد التحكم / لوحة المفاتيح', 'زر الجري (X، Shift) يبدل السلاح، زر الإلغاء (Backspace) يرمي قنبلة.']
+            ['يد التحكم / لوحة المفاتيح', 'A للإطلاق، B / X لتبديل السلاح، الإلغاء لرمي قنبلة. غيّرها من اللاعبون ويد التحكم.'],
+            ['تعاوني', 'اللاعبون ويد التحكم: أضف اللاعب 2 بيد تحكم ثانية. الزميل الساقط يعود بعد 20 ثانية، وتفشل المهمة فقط إذا سقط الاثنان.']
         ],
         ops: ['موقع صحراوي يسيطر عليه قائد ميليشيا.', 'مجمع في الغابة، مثالي للقناصة والكمائن.', 'ميناء صناعي مليء بالصناديق وبراميل الوقود.', 'مقر قيادة العدو. كل ما تبقى لديهم.'],
         cat: { pistol: 'سلاح جانبي موثوق، ذخيرته لا تنفد', shotgun: 'مدمرة من مسافة قريبة', rifle: 'نيران آلية متعددة الاستخدام', sniper: 'طلقة واحدة، قتيل واحد. اثبت لتصوّب.' }

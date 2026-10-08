@@ -290,7 +290,7 @@ var Render = (function () {
         for (var yy = y0; yy <= y1; yy++) for (var xx = x0; xx <= x1; xx++) {
             var ii = yy * W.w + xx;
             if (W.tiles[ii] !== T_BUSH) continue;
-            var pin = G.player && G.player.on && Math.floor(G.player.x / TILE) === xx && Math.floor(G.player.y / TILE) === yy;
+            var pin = playerIn(G.players[0], xx, yy) || playerIn(G.players[1], xx, yy);
             c.globalAlpha = pin ? 0.55 : 0.96;
             c.drawImage(bushImg, xx * TILE - 6, yy * TILE - 6, TILE + 12, TILE + 12);
         }
@@ -326,16 +326,8 @@ var Render = (function () {
         // battle royale zone
         if (G.zone) drawZone(c, G.zone, left, top, vw, vh);
         // auto-aim reticle
-        var P = G.player;
-        if (P && P.on && G.state === 'play' && (G.tgt.a || G.tgt.barrel >= 0)) {
-            var rx = G.tgt.x, ry = G.tgt.y, rs = (G.tgt.a ? G.tgt.a.r + 9 : 18) + Math.sin(f * 0.2) * 2;
-            c.strokeStyle = G.tgt.barrel >= 0 ? '#ffa630' : '#ff3d4a'; c.lineWidth = 3;
-            for (var cc = 0; cc < 4; cc++) {
-                var ax = cc & 1 ? 1 : -1, ay = cc & 2 ? 1 : -1;
-                c.beginPath(); c.moveTo(rx + ax * rs, ry + ay * (rs - 7)); c.lineTo(rx + ax * rs, ry + ay * rs); c.lineTo(rx + ax * (rs - 7), ry + ay * rs); c.stroke();
-            }
-            if (R.tier !== 'low') { c.strokeStyle = 'rgba(255,80,80,0.18)'; c.lineWidth = 1; c.beginPath(); c.moveTo(P.x, P.y); c.lineTo(rx, ry); c.stroke(); }
-        }
+        drawReticle(c, G.players[0], f, G.coop); drawReticle(c, G.players[1], f, G.coop);
+        var P = lowestPlayer();
         // last hostiles: pulsing markers through the fog
         if (G.revealLast && G.mode === 'story') {
             var pulse = 0.5 + 0.5 * Math.sin(f * 0.12);
@@ -378,6 +370,26 @@ var Render = (function () {
         } else if (R.tier !== 'low') c.drawImage(vignette, 0, 0, VW, VH);
     };
 
+    function playerIn(p, tx, ty) { return p && p.on && Math.floor(p.x / TILE) === tx && Math.floor(p.y / TILE) === ty; }
+    // the living player with the least health drives the screen-wide damage effects
+    function lowestPlayer() {
+        var a = Game.players[0], b = Game.players[1];
+        if (!a || !a.on) return b && b.on ? b : null;
+        if (!b || !b.on) return a;
+        return b.hp < a.hp ? b : a;
+    }
+    var PCOL = ['#3ee6ff', '#5dff7a'];
+    function drawReticle(c, P, f, coop) {
+        if (!P || !P.on || Game.state !== 'play' || (!P.tA && P.tB < 0)) return;
+        var rx = P.tX, ry = P.tY, rs = (P.tA ? P.tA.r + 9 : 18) + Math.sin(f * 0.2 + P.slot * 2) * 2 + P.slot * 4;
+        c.strokeStyle = P.tB >= 0 ? '#ffa630' : coop ? PCOL[P.slot] : '#ff3d4a'; c.lineWidth = 3;
+        for (var cc = 0; cc < 4; cc++) {
+            var ax = cc & 1 ? 1 : -1, ay = cc & 2 ? 1 : -1;
+            c.beginPath(); c.moveTo(rx + ax * rs, ry + ay * (rs - 7)); c.lineTo(rx + ax * rs, ry + ay * rs); c.lineTo(rx + ax * (rs - 7), ry + ay * rs); c.stroke();
+        }
+        if (R.tier !== 'low') { c.globalAlpha = 0.18; c.strokeStyle = coop ? PCOL[P.slot] : '#ff5050'; c.lineWidth = 1; c.beginPath(); c.moveTo(P.x, P.y); c.lineTo(rx, ry); c.stroke(); c.globalAlpha = 1; }
+    }
+
     function drawTile(c, name, x, y, size) { var f = F('t_' + name); if (f) c.drawImage(R.img, f[0], f[1], f[2], f[3], x, y, size, size); }
 
     function drawActor(c, a, f) {
@@ -386,7 +398,7 @@ var Render = (function () {
         var s = 0.5 * a.scale, inBush = World.tileAt(a.x, a.y) === T_BUSH;
         // shadow and team ring
         c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(a.x + 3, a.y + 4, a.r * 1.05, a.r * 0.9, 0, 0, 6.283); c.fill();
-        if (a.isPlayer) { c.strokeStyle = '#3ee6ff'; c.lineWidth = 2.5; c.beginPath(); c.arc(a.x, a.y, a.r + 5, 0, 6.283); c.stroke(); }
+        if (a.isPlayer) { c.strokeStyle = PCOL[a.slot]; c.lineWidth = 2.5; c.beginPath(); c.arc(a.x, a.y, a.r + 5, 0, 6.283); c.stroke(); }
         else if (a.boss) { c.globalAlpha = 0.6 + 0.3 * Math.sin(f * 0.1); c.strokeStyle = '#ff3c3c'; c.lineWidth = 3; c.beginPath(); c.arc(a.x, a.y, a.r + 6, 0, 6.283); c.stroke(); c.globalAlpha = 1; }
         else if (Game.mode !== 'attract') { c.strokeStyle = a.team === 1 ? 'rgba(255,70,70,0.7)' : 'rgba(255,170,60,0.7)'; c.lineWidth = 1.5; c.beginPath(); c.arc(a.x, a.y, a.r + 3, 0, 6.283); c.stroke(); }
         c.save(); c.translate(a.x, a.y); c.rotate(a.angle);
@@ -502,7 +514,7 @@ var Render = (function () {
         ctx.clearRect(0, 0, w, h);
         var scale, ox, oy;
         if (full) { scale = Math.min(w / (W.w * TILE), h / (W.h * TILE)); ox = (w - W.w * TILE * scale) / 2; oy = (h - W.h * TILE * scale) / 2; }
-        else { scale = w / 900; var c0 = G.player && G.player.on ? G.player : { x: G.camX, y: G.camY }; ox = w / 2 - c0.x * scale; oy = h / 2 - c0.y * scale; }
+        else { scale = w / 900; ox = w / 2 - G.camX * scale; oy = h / 2 - G.camY * scale; }
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(R.mini, ox, oy, W.w * TILE * scale, W.h * TILE * scale);
         if (G.mode !== 'attract') { ctx.imageSmoothingEnabled = true; W.flushFog(); ctx.drawImage(W.fogCanvas, ox, oy, W.w * TILE * scale, W.h * TILE * scale); }
@@ -531,11 +543,12 @@ var Render = (function () {
             ctx.strokeStyle = 'rgba(255,46,99,0.9)'; ctx.lineWidth = 2; ctx.setLineDash([5, 4]);
             ctx.beginPath(); ctx.arc(ox + G.boss.homeX * scale, oy + G.boss.homeY * scale, 9 * TILE * scale, 0, 6.283); ctx.stroke(); ctx.setLineDash([]);
         }
-        var P = G.player;
-        if (P && P.on) {
+        for (var pi = 0; pi < 2; pi++) {
+            var P = G.players[pi];
+            if (!P || !P.on) continue;
             var px = ox + P.x * scale, py = oy + P.y * scale;
             ctx.save(); ctx.translate(px, py); ctx.rotate(P.angle);
-            ctx.fillStyle = '#3ee6ff'; ctx.strokeStyle = '#002a33'; ctx.lineWidth = 1.5;
+            ctx.fillStyle = PCOL[pi]; ctx.strokeStyle = '#002a33'; ctx.lineWidth = 1.5;
             var u = full ? 9 : 7;
             ctx.beginPath(); ctx.moveTo(u, 0); ctx.lineTo(-u * 0.7, -u * 0.65); ctx.lineTo(-u * 0.35, 0); ctx.lineTo(-u * 0.7, u * 0.65); ctx.closePath(); ctx.fill(); ctx.stroke();
             ctx.restore();

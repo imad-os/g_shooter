@@ -49,20 +49,38 @@
     function stopLoop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
 
     var DIRS = { left: 1, right: 1, up: 1, down: 1 };
-    function onInput(action, pressed, repeat) {
+    // every action carries the device that made it; each player only listens to their own controller
+    function onInput(action, pressed, repeat, dev) {
         SFX.unlock();
+        if (!repeat) Input.set(dev, action, pressed);
         if (!pressed) return;
+        var isOk = action === 'confirm' || action === 'jump';
+        if (UI.capturing) {                                  // "press OK / A on the controller for player N"
+            if (isOk && !repeat && performance.now() > okGuard) { okGuard = performance.now() + 250; UI.captured(dev); }
+            else if (action === 'cancel' && dev === Input.p1) UI.cancelCapture();
+            return;
+        }
+        if (UI.screen === 'splash') {                        // the first controller to press OK / A is player 1
+            if (isOk && !repeat) { okGuard = performance.now() + 250; UI.claimP1(dev); }
+            return;
+        }
         if (UI.inMenu()) {
+            if (dev !== UI.menuDev()) return;
             if (DIRS[action]) UI.nav(action);
             else if (action === 'confirm' && !repeat && performance.now() > okGuard) UI.ok();
             else if (action === 'cancel' && !repeat) UI.back();
             return;
         }
-        if (repeat || Game.state !== 'play' || !Game.alivePlayer()) return;
-        if (action === 'jump') {
-            if (!Game.fireLatch && Game.okWantsTactical()) { okGuard = performance.now() + 180; UI.openTactical(); }
-        } else if (action === 'run') Game.cycleWeapon();
-        else if (action === 'cancel') Game.playerNade();
+        if (repeat || Game.state !== 'play') return;
+        var slot = Input.slotOf(dev), p = slot >= 0 ? Game.players[slot] : null;
+        if (!p || !p.on) return;
+        var cmd = Input.cmdFor(slot, action);
+        if (action === 'confirm') return;                    // OK / A always send confirm + jump: play uses jump only
+        if (cmd === 'fire') {
+            if (!p.latch && Input.maps[slot].tac === 'auto' && Game.okWantsTactical(p)) { okGuard = performance.now() + 180; UI.openTactical(slot); }
+        } else if (cmd === 'tac') { okGuard = performance.now() + 180; UI.openTactical(slot); }
+        else if (cmd === 'swap') Game.cycleWeapon(p);
+        else if (cmd === 'nade') Game.playerNade(undefined, p);
     }
 
     MyPC.init({
@@ -92,11 +110,11 @@
         onStart: function () {
             SFX.start(info.volume);
             Game.startBR(7, true);
-            UI.title();
+            UI.splash();
             startLoop();
         },
         onPause: function () {
-            stopLoop(); SFX.suspend();
+            stopLoop(); SFX.suspend(); Input.clear();
             if (info.standalone) document.getElementById('paused').style.display = 'flex';
         },
         onResume: function () {
@@ -109,7 +127,8 @@
         },
         onInput: onInput,
         onMenu: function (id) {
-            if (id === 'tactical') { if (!UI.inMenu() && Game.state === 'play') { okGuard = performance.now() + 180; UI.openTactical(); } }
+            if (id === 'tactical') { if (!UI.inMenu() && Game.state === 'play') { okGuard = performance.now() + 180; UI.openTactical(Game.players[0] && Game.players[0].on ? 0 : 1); } }
+            else if (id === 'controller') UI.changeController();
             else if (id === 'restart') { UI.closeAll(); UI.restart(); }
             else if (id === 'menu') UI.quitToMenu();
         },

@@ -212,6 +212,36 @@
   .st b { font-size: calc(var(--u)*5); direction: ltr; }
   .unlock { font-size: calc(var(--u)*3.6); color: #ffd34d; font-weight: 700; padding: calc(var(--u)*1) calc(var(--u)*2.5); background: rgba(255,211,77,0.12); border-radius: calc(var(--u)*0.6); }
 
+  /* controllers and co-op */
+  .s-splash { justify-content: center; align-items: center; background: radial-gradient(circle at 50% 45%, rgba(3,7,11,0.55), rgba(3,7,11,0.94)); }
+  .logo.center { margin-bottom: calc(var(--u)*6); }
+  .press { display: flex; align-items: center; gap: calc(var(--u)*1.6); font-size: calc(var(--u)*4); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+  .key { display: inline-flex; align-items: center; justify-content: center; min-width: calc(var(--u)*6.5); height: calc(var(--u)*6.5); padding: 0 calc(var(--u)*1.2);
+         border: calc(var(--u)*0.4) solid #3ee6ff; border-radius: calc(var(--u)*1); font-weight: 700; font-size: calc(var(--u)*3.4); color: #3ee6ff; direction: ltr; }
+  .key.round { border-radius: 50%; border-color: #5dff7a; color: #5dff7a; }
+  .modal { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(3,7,11,0.82); z-index: 5; }
+  .modal .panel { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u)*2); padding: calc(var(--u)*4) calc(var(--u)*6); border-top: calc(var(--u)*0.6) solid #3ee6ff; }
+  .modal b { font-size: calc(var(--u)*4); text-align: center; }
+  .modal small { font-size: calc(var(--u)*5); color: #ffb648; font-weight: 700; }
+  .ctl { width: 70%; }
+  .note { font-size: calc(var(--u)*3); color: #9fb0bd; margin: calc(var(--u)*0.6) 0 0; }
+  .note.warn { color: #ffb648; }
+  .pdot { display: inline-block; width: calc(var(--u)*1.8); height: calc(var(--u)*1.8); border-radius: 50%; margin-inline-end: calc(var(--u)*1); vertical-align: middle; }
+  .pdot.p1 { background: #3ee6ff; } .pdot.p2 { background: #5dff7a; }
+  .tag.coop { color: #5dff7a; background: rgba(93,255,122,0.12); }
+  #p2hud { bottom: calc(var(--u)*5); left: 50%; transform: translateX(-50%); width: 26%; display: flex; align-items: center; gap: calc(var(--u)*1.4);
+           border-inline-start-color: #5dff7a; padding: calc(var(--u)*0.9) calc(var(--u)*1.6); }
+  .p2tag { font-size: calc(var(--u)*3.6); color: #5dff7a; }
+  .p2bars { flex: 1; display: flex; flex-direction: column; gap: calc(var(--u)*0.5); }
+  .p2bars .bar { height: calc(var(--u)*1.6); } .p2bars .bar.thin { height: calc(var(--u)*0.9); }
+  #p2hp { background: linear-gradient(90deg, #2fd27a, #7dff9a); } #p2ar { background: linear-gradient(90deg, #2a8fd6, #4fc3ff); }
+  .p2w { display: flex; flex-direction: column; align-items: flex-end; font-size: calc(var(--u)*3); min-width: 34%; }
+  .p2w b { color: #c9ffd2; text-transform: uppercase; font-size: calc(var(--u)*2.9); white-space: nowrap; }
+  .p2w span { color: #9fb0bd; font-weight: 700; direction: ltr; }
+  #hud.coop #hint { bottom: calc(var(--u)*13); }
+  #hud.coop #toasts { bottom: calc(var(--u)*24); }
+
   #paused { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(3,7,11,0.8); gap: calc(var(--u)*1.5); }
   #paused b { font-size: calc(var(--u)*8); letter-spacing: 0.1em; text-transform: uppercase; }
   #paused span { font-size: calc(var(--u)*3.4); color: #ffb648; font-weight: 700; }
@@ -236,6 +266,11 @@
       <div class="rl"><span id="rl-txt"></span><i></i></div>
       <div class="nades"><span id="n0"><i class="dot" style="background:#9fe870"></i><b>0</b></span><span id="n1"><i class="dot" style="background:#ffffff"></i><b>0</b></span><span id="n2"><i class="dot" style="background:#c8d2dc"></i><b>0</b></span><span id="n3"><i class="dot" style="background:#ff8a3d"></i><b>0</b></span></div>
     </div>
+    <div id="p2hud" class="hpanel" style="display:none">
+      <b class="p2tag">P2</b>
+      <div class="p2bars"><div class="bar"><u id="p2hp"></u></div><div class="bar thin"><u id="p2ar"></u></div></div>
+      <div class="p2w"><b id="p2w"></b><span id="p2a"></span></div>
+    </div>
     <div id="hint"></div>
     <div id="toasts"></div>
     <div id="toast"></div>
@@ -248,6 +283,7 @@
 <script src="js/atlas.js"></script>
 <script src="js/sounds.js"></script>
 <script src="js/i18n.js"></script>
+<script src="js/input.js"></script>
 <script src="js/data.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/world.js"></script>

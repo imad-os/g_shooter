@@ -5,7 +5,7 @@ var Game = (function () {
     var PI = Math.PI, TAU = PI * 2;
     var G = {
         mode: 'attract', state: 'idle', frame: 0, actors: [], bullets: [], parts: [], nades: [], pickups: [], corpses: [], smokes: [], fires: [],
-        player: null, maxTokens: 3, stageDmg: 1, stageReact: 0, stageHp: 1, camX: 0, camY: 0, zoom: 1, zoomT: 1, shake: 0, slowmo: 0, diff: DIFFS.veteran, diffName: 'veteran',
+        player: null, players: [null, null], coop: false, maxTokens: 3, stageDmg: 1, stageReact: 0, stageHp: 1, camX: 0, camY: 0, zoom: 1, zoomT: 1, shake: 0, slowmo: 0, diff: DIFFS.veteran, diffName: 'veteran',
         stage: null, op: 0, st: 0, boss: null, bossWave: 0, enemiesLeft: 0, kills: 0, shots: 0, hits: 0, time: 0, endT: 0,
         zone: null, alive: 0, place: 0, total: 0, followId: 0, pathBudget: 0, combatT: 0, hintT: 0, flashT: 0, lowFx: false,
         revealLast: false, pingT: 0, events: { hurtAng: 0, hurtT: 0 }, result: null, lastSpot: -999
@@ -26,7 +26,7 @@ var Game = (function () {
             reactT: 0, burstWant: 0, burstPause: 0, path: new Int16Array(72), pathLen: 0, pathIdx: 0, goal: -1, repathT: 0,
             cover: -1, peek: -1, homeX: 0, homeY: 0, guard: false, suppress: 0, blindT: 0, burnT: 0, nadeCd: 0, laserT: 0, icon: 0, iconT: 0,
             stuckT: 0, lastX: 0, lastY: 0, retreated: false, invX: 0, invY: 0, lookT: 0, strafe: 1, seenByP: false, launchT: 0, smokeUsed: 0,
-            kills: 0, killer: null, pickT: 0, tokenF: -999, braceT: 0, roamT: 0, wantSlot: 0, lastHurtBy: null, phase: 0 };
+            kills: 0, killer: null, pickT: 0, tokenF: -999, braceT: 0, slot: 0, reserved: false, respawnT: 0, idleT: 0, latch: true, tA: null, tB: -1, tX: 0, tY: 0, roamT: 0, wantSlot: 0, lastHurtBy: null, phase: 0 };
     }
     var i;
     for (i = 0; i < MAX_ACTORS; i++) G.actors.push(makeActor(i));
@@ -72,19 +72,18 @@ var Game = (function () {
     }
     var DUMMY = { on: false, t: 0 };
 
-    function freeActor() { for (var j = 0; j < MAX_ACTORS; j++) if (!G.actors[j].on) return G.actors[j]; return null; }
+    function freeActor() { for (var j = 0; j < MAX_ACTORS; j++) if (!G.actors[j].on && !G.actors[j].reserved) return G.actors[j]; return null; }
 
     function resetPools() {
         var j;
-        for (j = 0; j < MAX_ACTORS; j++) G.actors[j].on = false;
+        for (j = 0; j < MAX_ACTORS; j++) { G.actors[j].on = false; G.actors[j].reserved = false; }
         for (j = 0; j < MAX_BULLETS; j++) G.bullets[j].on = false;
         for (j = 0; j < MAX_PARTS; j++) G.parts[j].on = false;
         for (j = 0; j < MAX_NADES; j++) G.nades[j].on = false;
         for (j = 0; j < MAX_PICKUPS; j++) G.pickups[j].on = false;
         for (j = 0; j < MAX_CORPSES; j++) G.corpses[j].on = false;
         for (j = 0; j < 12; j++) { G.smokes[j].on = false; G.fires[j].on = false; }
-        G.player = null; G.boss = null; G.zone = null; G.kills = 0; G.shots = 0; G.hits = 0; G.time = 0; G.endT = 0; G.result = null;
-        tgt.a = null; tgt.barrel = -1;
+        G.player = null; G.players[0] = G.players[1] = null; G.boss = null; G.zone = null; G.kills = 0; G.shots = 0; G.hits = 0; G.time = 0; G.endT = 0; G.result = null;
         G.bossWave = 0; G.shake = 0; G.slowmo = 0; G.combatT = 0; G.revealLast = false; G.pingT = 0; G.flashT = 0; G.events.hurtT = 0;
     }
 
@@ -105,7 +104,8 @@ var Game = (function () {
         a.reactT = 0; a.burstWant = 0; a.burstPause = 0; a.pathLen = 0; a.pathIdx = 0; a.goal = -1; a.repathT = 0; a.cover = -1; a.peek = -1;
         a.homeX = x; a.homeY = y; a.guard = !!opts.guard; a.suppress = 0; a.blindT = 0; a.burnT = 0; a.nadeCd = 120; a.laserT = 0; a.icon = 0; a.iconT = 0;
         a.stuckT = 0; a.lastX = x; a.lastY = y; a.retreated = false; a.lookT = 0; a.strafe = rnd() < 0.5 ? 1 : -1; a.seenByP = false; a.launchT = 90; a.smokeUsed = 0;
-        a.pickT = 0; a.roamT = 0; a.tokenF = -999; a.braceT = 0;
+        a.pickT = 0; a.roamT = 0; a.tokenF = -999; a.braceT = 0; a.slot = opts.slot || 0; a.reserved = a.isPlayer; a.respawnT = 0; a.idleT = 0;
+        a.latch = true; a.tA = null; a.tB = -1;
         a.reactBase = Math.max(10, (def.react || 36) + (team === 1 ? G.diff.react + G.stageReact : 0));
         a.accMul = (def.acc || 1.2) * (team === 1 ? G.diff.acc : 1);
         if (def.wpn) giveWeapon(a, def.wpn, true);
@@ -134,8 +134,8 @@ var Game = (function () {
         if (a.isPlayer) { SFX.play('uiSwitch', 0.6); UI.hud.dirty = true; }
         if (a.mag[s] === 0) startReload(a);
     }
-    G.selectSlot = function (s) { if (G.player && G.player.on) selectSlot(G.player, s); };
-    G.cycleWeapon = function () { if (G.player && G.player.on) selectSlot(G.player, nextSlot(G.player, 1)); };
+    G.selectSlot = function (s, p) { p = p || G.player; if (p && p.on) selectSlot(p, s); };
+    G.cycleWeapon = function (p) { p = p || G.player; if (p && p.on) selectSlot(p, nextSlot(p, 1)); };
 
     function startReload(a) {
         var wd = wpn(a);
@@ -263,7 +263,7 @@ var Game = (function () {
                 var hx = b.x + b.vx * best, hy = b.y + b.vy * best;
                 var falloff = b.dist > b.range ? Math.max(0.35, 1 - (b.dist - b.range) / b.range) : 1;
                 hurt(hit, b.dmg * falloff, b.owner, b.vx / spd, b.vy / spd, b.knock, false);
-                if (b.owner === G.player) G.hits++;
+                if (b.owner && b.owner.isPlayer) G.hits++;
                 if (b.pen > 0) { b.pen--; b.ignore = hit; b.dmg *= 0.65; b.x = hx; b.y = hy; continue; }
                 b.on = false; continue;
             }
@@ -382,8 +382,12 @@ var Game = (function () {
         SFX.play('body', 0.6, rr(0.85, 1.05), a.x, a.y);
         if (src && src.on !== undefined) { src.kills++; }
         a.killer = src;
-        if (a.isPlayer) { playerDied(src); return; }
-        if (src === G.player) { G.kills++; UI.killMark(); }
+        if (a.isPlayer) {
+            var mate = G.players[1 - a.slot];
+            if (G.coop && mate && mate.on) { a.respawnT = 20 * 60; UI.toast((a.slot ? 'P2' : 'P1') + ' ' + T('down'), '#ff6b5a', T('backIn') + ' 20 s'); UI.hud.dirty = true; return; }
+            playerDied(src); return;
+        }
+        if (src && src.isPlayer) { G.kills++; UI.killMark(); }
         if (G.mode === 'br' || G.mode === 'attract') { brDrop(a); brDeath(a, src); return; }
         // story drops
         var r = rnd();
@@ -869,7 +873,7 @@ var Game = (function () {
         }
 
         // ---- alerted ----
-        if (!t) { t = G.player; a.target = t; if (!t || !t.on) { a.dvx = a.dvy = 0; return; } }
+        if (!t) { t = nearestPlayer(a); a.target = t; if (!t || !t.on) { a.dvx = a.dvy = 0; return; } }
         var sees = a.seeT, d = dist(a.x, a.y, t.x, t.y), wd = wpn(a), lost = f - a.lastSeen;
         if (G.revealLast && (f + a.id) % 300 === 0) { a.lkX = t.x; a.lkY = t.y; }
         // retreat when badly hurt (once)
@@ -988,9 +992,10 @@ var Game = (function () {
                 var ti = World.randomNear(Math.floor(a.x / TILE), Math.floor(a.y / TILE), 12, 5);
                 if (ti < 0) continue;
                 var x = (ti % World.w) * TILE + 16, y = ((ti / World.w) | 0) * TILE + 16;
-                if (G.player && (World.visible(x, y) || dist(x, y, G.player.x, G.player.y) < 300)) continue;
+                var np = nearestPlayer({ x: x, y: y });
+                if (np && (World.visible(x, y) || dist(x, y, np.x, np.y) < 300)) continue;
                 var e = spawnActor(x, y, 1, ENEMIES[type], { hpMul: G.stageHp });
-                if (e) { cnt++; alertTo(e, G.player, false); e.lkX = G.player.x; e.lkY = G.player.y; }
+                if (e && np) { cnt++; alertTo(e, np, false); e.lkX = np.x; e.lkY = np.y; }
             }
             if (cnt) { UI.toast(T('reinforce'), '#ff6b5a'); MyPC.announce(T('reinforce')); countEnemies(); }
         }
@@ -1001,8 +1006,12 @@ var Game = (function () {
 
     /* ---------------- player ---------------- */
 
-    var tgt = { a: null, barrel: -1, x: 0, y: 0 };
-    G.tgt = tgt;
+    function nearestPlayer(a) {
+        var best = null, bd = 1e9;
+        for (var k = 0; k < 2; k++) { var p = G.players[k]; if (!p || !p.on) continue; var d = dist(a.x, a.y, p.x, p.y); if (d < bd) { bd = d; best = p; } }
+        return best;
+    }
+    G.nearestPlayer = nearestPlayer;
     function pickTarget(p) {
         var best = null, bs = 1e9, wd = wpn(p), maxR = Math.max(560, wd.range * 1.3);
         for (var k = 0; k < MAX_ACTORS; k++) {
@@ -1013,7 +1022,7 @@ var Game = (function () {
             if (!World.los(p.x, p.y, e.x, e.y, BLOCK_SHOT)) continue;
             var ang = Math.abs(angDiff(Math.atan2(e.y - p.y, e.x - p.x), p.angle));
             var s = d * (1 + ang * 0.45);
-            if (e === tgt.a) s *= 0.55;
+            if (e === p.tA) s *= 0.55;
             if (e.alerted && e.seeT) s *= 0.8;       // threats first
             if (s < bs) { bs = s; best = e; }
         }
@@ -1031,35 +1040,48 @@ var Game = (function () {
                 if (near >= 1 && !best.boss) barrel = ty * World.w + tx;
             }
         }
-        tgt.a = best; tgt.barrel = barrel;
-        if (barrel >= 0) { tgt.x = (barrel % World.w) * TILE + 16; tgt.y = ((barrel / World.w) | 0) * TILE + 16; }
-        else if (best) { tgt.x = best.x; tgt.y = best.y; }
-        if (best) { p.lkX = tgt.x; p.lkY = tgt.y; p.lastSeen = G.frame; }
+        p.tA = best; p.tB = barrel;
+        if (barrel >= 0) { p.tX = (barrel % World.w) * TILE + 16; p.tY = ((barrel / World.w) | 0) * TILE + 16; }
+        else if (best) { p.tX = best.x; p.tY = best.y; }
+        if (best) { p.lkX = p.tX; p.lkY = p.tY; p.lastSeen = G.frame; }
     }
 
-    G.fireLatch = true;
     function updatePlayer(p) {
         var f = G.frame;
         if (p.fireCd > 0) p.fireCd--;
         if (p.revealT > 0) p.revealT--;
         if (p.hitFlash > 0) p.hitFlash--;
         if (p.healT > 0) { p.healT--; p.hp = Math.min(p.maxHp, p.hp + 0.5); if (p.healT % 10 === 0) UI.hud.dirty = true; }
-        var ix = (MyPC.isDown('right') ? 1 : 0) - (MyPC.isDown('left') ? 1 : 0), iy = (MyPC.isDown('down') ? 1 : 0) - (MyPC.isDown('up') ? 1 : 0);
+        var sl = p.slot;
+        var ix = (Input.dirDown(sl, 'right') ? 1 : 0) - (Input.dirDown(sl, 'left') ? 1 : 0), iy = (Input.dirDown(sl, 'down') ? 1 : 0) - (Input.dirDown(sl, 'up') ? 1 : 0);
         var wd = wpn(p), l = Math.sqrt(ix * ix + iy * iy) || 1;
         var sp = 2.35 * (wd.move || 1) * (p.reloadT > 0 ? 0.9 : 1);
         p.dvx = ix / l * sp; p.dvy = iy / l * sp;
+        // co-op: both players share the screen, so neither may walk too far from the other
+        var mate = G.players[1 - sl];
+        if (ix || iy || Input.cmdDown(sl, 'fire')) p.idleT = 0; else p.idleT++;
+        if (mate && mate.on) {
+            var mx = p.x + p.dvx - mate.x, my = p.y + p.dvy - mate.y;
+            var atEdge = (Math.abs(mx) > 1100 && mx * p.dvx > 0) || (Math.abs(my) > 600 && my * p.dvy > 0);
+            // a partner who put the controller down is brought along instead of holding the team back
+            if (atEdge && mate.idleT > 600) warpNear(mate, p);
+            else {
+                if (Math.abs(mx) > 1100 && mx * p.dvx > 0) p.dvx = 0;
+                if (Math.abs(my) > 600 && my * p.dvy > 0) p.dvy = 0;
+            }
+        }
         if (ix || iy) p.still = 0; else p.still++;
         if (f % 3 === 0) pickTarget(p);
-        var holding = MyPC.isDown('jump');
-        if (G.fireLatch && !holding) G.fireLatch = false;
+        var holding = Input.cmdDown(sl, 'fire');
+        if (p.latch && !holding) p.latch = false;
         var aimX = 0, aimY = 0, has = false;
-        if (tgt.a || tgt.barrel >= 0) { aimX = tgt.x; aimY = tgt.y; has = true; }
+        if (p.tA || p.tB >= 0) { aimX = p.tX; aimY = p.tY; has = true; }
         else if (holding && f - p.lastSeen < 90) { aimX = p.lkX; aimY = p.lkY; has = true; }
         if (has) {
-            var lead = tgt.a ? dist(p.x, p.y, aimX, aimY) / wd.speed * 0.6 : 0;
-            var off = turnTo(p, Math.atan2(aimY + (tgt.a ? tgt.a.vy * lead : 0) - p.y, aimX + (tgt.a ? tgt.a.vx * lead : 0) - p.x), 0.3);
+            var lead = p.tA ? dist(p.x, p.y, aimX, aimY) / wd.speed * 0.6 : 0;
+            var off = turnTo(p, Math.atan2(aimY + (p.tA ? p.tA.vy * lead : 0) - p.y, aimX + (p.tA ? p.tA.vx * lead : 0) - p.x), 0.3);
             // holding OK fires at the weapon's own pace (semi-automatic ones too: easier on a TV remote)
-            if (holding && !G.fireLatch && off < 0.12) fire(p);
+            if (holding && !p.latch && off < 0.12) fire(p);
         } else if (ix || iy) turnTo(p, Math.atan2(iy, ix), 0.22);
         if (p.burstLeft > 0 && --p.burstT <= 0) { p.burstLeft--; p.burstT = wd.burstGap; if (p.mag[p.cur] > 0) { p.mag[p.cur]--; shoot(p, wd); UI.hud.dirty = true; } else p.burstLeft = 0; }
         if (!holding) p.recoil = Math.max(0, p.recoil - 0.006); else p.recoil = Math.max(0, p.recoil - 0.0015);
@@ -1099,17 +1121,17 @@ var Game = (function () {
             } else { a.res[s] = Math.min(WEAPONS[a.w[s]].reserve * 2, a.res[s] + WEAPONS[a.w[s]].mag); msg = T('ammo'); }
         }
         pk.on = false;
-        if (a.isPlayer) { SFX.play('pickup', 0.6); UI.toastSmall('+ ' + msg); UI.hud.dirty = true; }
+        if (a.isPlayer) { SFX.play('pickup', 0.6); UI.toastSmall((G.coop ? 'P' + (a.slot + 1) + '  ' : '') + '+ ' + msg); UI.hud.dirty = true; }
     }
 
-    G.useMedkit = function () {
-        var p = G.player;
+    G.useMedkit = function (p) {
+        p = p || G.player;
         if (!p || !p.on || p.medkits <= 0 || p.hp >= p.maxHp) return false;
         p.medkits--; p.healT = 100; SFX.play('pickup', 0.6, 0.8); UI.hud.dirty = true; return true;
     };
     // throw a grenade at the target, the last seen enemy, or ahead
-    G.playerNade = function (type) {
-        var p = G.player;
+    G.playerNade = function (type, p) {
+        p = p || G.player;
         if (!p || !p.on) return false;
         if (type === undefined) { type = -1; for (var k = 0; k < 4; k++) if (p.nades[k] > 0) { type = k; break; } }
         if (type < 0 || p.nades[type] <= 0) { SFX.play('uiError', 0.5); return false; }
@@ -1135,10 +1157,10 @@ var Game = (function () {
         return best;
     }
     // what OK does when pressed in play: fire if something is (or just was) in sight, else open the tactical screen
-    G.okWantsTactical = function () {
-        var p = G.player;
+    G.okWantsTactical = function (p) {
+        p = p || G.player;
         if (!p || !p.on) return false;
-        return !tgt.a && tgt.barrel < 0 && G.frame - p.lastSeen > 90;
+        return !p.tA && p.tB < 0 && G.frame - p.lastSeen > 90;
     };
 
     /* ---------------- battle royale ---------------- */
@@ -1273,17 +1295,23 @@ var Game = (function () {
         G.maxTokens = Math.min(3, 2 + Math.floor(stageNo / 5)) + (G.diffName === 'elite' ? 1 : 0);
         World.generate({ w: S.w, h: S.h, theme: O.theme, seed: 1000 + stageNo * 7919 + ((save.seeds && save.seeds[stageNo]) || 0), spawnX: 4, spawnY: (S.h / 2) | 0 });
         Render.buildFloor();
-        var p = spawnActor(World.spawnX * TILE + 16, World.spawnY * TILE + 16, 0, { sprite: 'survivor1', hp: 100, speed: 2.35 }, { player: true, angle: 0, armor: 50 });
-        G.player = p;
-        var lo = save.loadout;
-        for (var s = 0; s < 4; s++) if (lo[s]) giveWeapon(p, lo[s], false);
-        p.cur = lo[2] ? 2 : 0;
-        p.medkits = isBoss ? 2 : 1;
-        var nu = save.nades;
-        p.nades[0] = 2; p.nades[1] = nu.indexOf('flash') >= 0 ? 1 : 0; p.nades[2] = nu.indexOf('smoke') >= 0 ? 1 : 0; p.nades[3] = nu.indexOf('fire') >= 0 ? 1 : 0;
+        var nu = save.nades, p = null;
+        for (var pl = 0; pl < (G.coop ? 2 : 1); pl++) {
+            var q = spawnActor(World.spawnX * TILE + 16, World.spawnY * TILE + 16 + (pl ? 30 : (G.coop ? -14 : 0)), 0,
+                { sprite: 'survivor1', hp: 100, speed: 2.35, tint: pl ? '#5dff7a' : null }, { player: true, angle: 0, armor: 50, slot: pl });
+            G.players[pl] = q;
+            var lo = pl ? save.loadout2 || save.loadout : save.loadout;
+            for (var s = 0; s < 4; s++) if (lo[s]) giveWeapon(q, lo[s], false);
+            q.cur = lo[2] ? 2 : 0;
+            q.medkits = isBoss ? 2 : 1;
+            q.nades[0] = 2; q.nades[1] = nu.indexOf('flash') >= 0 ? 1 : 0; q.nades[2] = nu.indexOf('smoke') >= 0 ? 1 : 0; q.nades[3] = nu.indexOf('fire') >= 0 ? 1 : 0;
+        }
+        p = G.player = G.players[0];
+        if (G.coop) { G.stageHp *= 1.2; G.maxTokens++; }     // a second gun: tougher and bolder enemies
         // enemies: spread out on reachable tiles far from the player, some in buildings, some on guard
         var mix = [], k;
         for (var t2 in S.mix) for (k = 0; k < S.mix[t2]; k++) mix.push(t2);
+        S = Object.assign({}, S, { n: G.coop ? Math.round(S.n * 1.25) : S.n });
         var placed = [];
         function place(minDist, maxTries) {
             for (var q = 0; q < maxTries; q++) {
@@ -1348,7 +1376,7 @@ var Game = (function () {
         }
         countEnemies();
         G.camX = p.x; G.camY = p.y; G.zoom = G.zoomT = 1.12;
-        G.state = 'play'; G.fireLatch = true; G.frame = 0; G.lastSpot = -999;
+        G.state = 'play'; G.frame = 0; G.lastSpot = -999;
         World.computeVis(p.x, p.y, 17, smokeBlocks);
         SFX.setMix(isBoss ? 'calm' : 'calm');
     };
@@ -1378,7 +1406,7 @@ var Game = (function () {
             var a = spawnActor(spots[k][0], spots[k][1], k + 2, def, { player: isP, armor: 0 });
             if (!a) continue;
             a.name = isP ? '' : names[k % names.length];
-            if (isP) { G.player = a; a.team = 0; }
+            if (isP) { G.player = G.players[0] = a; a.team = 0; }
         }
         // loot: weapons by rarity, ammo, medkits, armor, grenades
         var nW = attract ? 24 : 70;
@@ -1402,7 +1430,7 @@ var Game = (function () {
         G.total = G.alive; G.place = 0;
         var c = G.player || G.actors[0];
         G.camX = c.x; G.camY = c.y; G.zoom = G.zoomT = attract ? 0.85 : 0.92;
-        G.state = 'play'; G.fireLatch = true; G.frame = 0; G.followId = 0;
+        G.state = 'play'; G.frame = 0; G.followId = 0;
         if (attract) World.revealAll(); else World.computeVis(c.x, c.y, 17, smokeBlocks);
         SFX.setMix(attract ? 'menu' : 'calm');
     };
@@ -1437,6 +1465,12 @@ var Game = (function () {
                 moveActor(a);
             }
             separate();
+        }
+        for (k = 0; k < 2; k++) {
+            var dp = G.players[k];
+            if (!dp || dp.on || dp.respawnT <= 0 || G.state !== 'play') continue;
+            if (--dp.respawnT === 0) respawn(dp);
+            else if (dp.respawnT % 60 === 0) UI.hud.dirty = true;
         }
         updateBullets(); updateNades(); updateBarrels(); updateZones();
         if (G.zone) updateZone();
@@ -1477,7 +1511,8 @@ var Game = (function () {
             }
         }
         // camera
-        var ft = G.player && G.player.on ? G.player : null;
+        var ft = G.player && G.player.on ? G.player : null, p2 = G.players[1] && G.players[1].on ? G.players[1] : null;
+        if (!ft && p2) { ft = p2; p2 = null; }
         if (!ft && (G.mode === 'attract' || G.mode === 'br')) {
             var f0 = G.actors[G.followId];
             if (!f0 || !f0.on) { for (k = 0; k < MAX_ACTORS; k++) if (G.actors[k].on) { G.followId = k; break; } }
@@ -1485,26 +1520,42 @@ var Game = (function () {
         }
         if (ft) {
             var leadX = 0, leadY = 0;
-            if (ft.isPlayer && (tgt.a || tgt.barrel >= 0)) { leadX = (tgt.x - ft.x) * 0.3; leadY = (tgt.y - ft.y) * 0.3; }
-            else { leadX = ft.vx * 18; leadY = ft.vy * 18; }
-            G.camX += (ft.x + leadX - G.camX) * 0.08; G.camY += (ft.y + leadY - G.camY) * 0.08;
-            var wd = ft.isPlayer ? wpn(ft) : null;
-            G.zoomT = wd && wd.scope && ft.still > 20 ? 0.8 : (G.mode === 'story' ? 1.12 : G.mode === 'attract' ? 0.85 : 0.92);
-            SFX.listener.x = ft.x; SFX.listener.y = ft.y;
+            if (p2) {
+                // co-op: frame both players, zooming out as they spread apart
+                var mx2 = (ft.x + p2.x) / 2, my2 = (ft.y + p2.y) / 2;
+                G.camX += (mx2 - G.camX) * 0.08; G.camY += (my2 - G.camY) * 0.08;
+                var fitX = 960 / (Math.abs(ft.x - p2.x) + 220), fitY = 540 / (Math.abs(ft.y - p2.y) + 160);
+                G.zoomT = Math.max(0.72, Math.min(1.05, fitX, fitY));
+                SFX.listener.x = mx2; SFX.listener.y = my2;
+            } else {
+                if (ft.isPlayer && (ft.tA || ft.tB >= 0)) { leadX = (ft.tX - ft.x) * 0.3; leadY = (ft.tY - ft.y) * 0.3; }
+                else { leadX = ft.vx * 18; leadY = ft.vy * 18; }
+                G.camX += (ft.x + leadX - G.camX) * 0.08; G.camY += (ft.y + leadY - G.camY) * 0.08;
+                var wd = ft.isPlayer ? wpn(ft) : null;
+                G.zoomT = wd && wd.scope && ft.still > 20 ? 0.8 : (G.mode === 'story' ? 1.12 : G.mode === 'attract' ? 0.85 : 0.92);
+                SFX.listener.x = ft.x; SFX.listener.y = ft.y;
+            }
         }
         G.zoom += (G.zoomT - G.zoom) * 0.05;
         if (G.shake > 0) G.shake *= 0.86;
         if (G.shake < 0.1) G.shake = 0;
         // field of view and what the player can see
-        if (G.player && G.player.on && G.mode !== 'attract' && G.frame % 4 === 0) {
-            World.computeVis(G.player.x, G.player.y, G.zoomT < 0.9 ? 22 : 18, smokeBlocks);
+        if (G.alivePlayer() && G.mode !== 'attract' && G.frame % 4 === 0) {
+            World.beginVis();
+            for (var pv = 0; pv < 2; pv++) { var V = G.players[pv]; if (V && V.on) World.addVis(V.x, V.y, G.zoomT < 0.9 ? 22 : 18, smokeBlocks); }
+            World.endVis();
             for (k = 0; k < MAX_ACTORS; k++) {
                 a = G.actors[k];
                 if (!a.on || a.isPlayer) continue;
-                // same rule both ways: what can see the player can be seen by the player
-                var P = G.player, dv = dist(a.x, a.y, P.x, P.y);
-                var vis = dv < 760 && World.los(P.x, P.y, a.x, a.y, BLOCK_SIGHT) && !smokeBlocks(P.x, P.y, a.x, a.y);
-                if (vis && World.tileAt(a.x, a.y) === T_BUSH && a.revealT <= 0 && dv > 85) vis = false;
+                // same rule both ways: what can see a player can be seen by that player
+                var vis = false;
+                for (pv = 0; pv < 2 && !vis; pv++) {
+                    var P = G.players[pv];
+                    if (!P || !P.on) continue;
+                    var dv = dist(a.x, a.y, P.x, P.y);
+                    vis = dv < 760 && World.los(P.x, P.y, a.x, a.y, BLOCK_SIGHT) && !smokeBlocks(P.x, P.y, a.x, a.y);
+                    if (vis && World.tileAt(a.x, a.y) === T_BUSH && a.revealT <= 0 && dv > 85) vis = false;
+                }
                 a.seenByP = vis;
                 if (vis) {           // light up the fog where a visible enemy stands
                     var vt = Math.floor(a.y / TILE) * World.w + Math.floor(a.x / TILE);
@@ -1537,6 +1588,24 @@ var Game = (function () {
         UI.showResult(G.result);
     }
 
-    G.alivePlayer = function () { return G.player && G.player.on; };
+    G.alivePlayer = function () { return !!((G.players[0] && G.players[0].on) || (G.players[1] && G.players[1].on)); };
+
+    function warpNear(p, to) {
+        var ti = World.randomNear(Math.floor(to.x / TILE), Math.floor(to.y / TILE), 2, 1);
+        if (ti < 0) ti = tileOf(to.x, to.y);
+        p.x = (ti % World.w) * TILE + 16; p.y = ((ti / World.w) | 0) * TILE + 16; p.vx = p.vy = 0; p.idleT = 0;
+    }
+
+    // a downed co-op player comes back next to the partner with part of their health
+    function respawn(p) {
+        var mate = G.players[1 - p.slot];
+        if (!mate || !mate.on) return;
+        var ti = World.randomNear(Math.floor(mate.x / TILE), Math.floor(mate.y / TILE), 2, 1);
+        if (ti < 0) ti = tileOf(mate.x, mate.y);
+        p.on = true; p.x = (ti % World.w) * TILE + 16; p.y = ((ti / World.w) | 0) * TILE + 16; p.vx = p.vy = 0;
+        p.hp = 60; p.armor = 0; p.latch = true; p.tA = null; p.tB = -1; p.reloadT = 0; p.healT = 0; p.hitFlash = 0;
+        for (var s2 = 0; s2 < 4; s2++) if (p.w[s2]) { var wd2 = WEAPONS[p.w[s2]]; p.mag[s2] = wd2.mag; if (p.res[s2] < 999) p.res[s2] = Math.max(p.res[s2], wd2.mag * 2); }
+        UI.toast((p.slot ? 'P2' : 'P1') + ' ' + T('backOnline'), '#5cf2a0'); UI.hud.dirty = true;
+    }
     return G;
 })();
