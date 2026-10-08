@@ -41,7 +41,7 @@
         raf = requestAnimationFrame(frame);
         if (!last) last = ts;
         acc += Math.min(250, ts - last); last = ts;
-        while (acc >= STEP) { Game.update(); UI.tick(); acc -= STEP; }
+        while (acc >= STEP) { Input.poll(); Game.update(); UI.tick(); acc -= STEP; }
         Render.draw();
         UI.updateHud();
     }
@@ -53,6 +53,7 @@
     function onInput(action, pressed, repeat, dev) {
         SFX.unlock();
         if (!repeat) Input.set(dev, action, pressed);
+        if (UI.listening) { UI.listenAction(dev, action, pressed); return; }   // "press a button for Fire"
         if (!pressed) return;
         var isOk = action === 'confirm' || action === 'jump';
         if (UI.capturing) {                                  // "press OK / A on the controller for player N"
@@ -65,23 +66,30 @@
             return;
         }
         if (UI.inMenu()) {
-            if (dev !== UI.menuDev()) return;
+            if (dev !== UI.menuDev() || performance.now() < UI.guardUntil) return;
             if (DIRS[action]) UI.nav(action);
             else if (action === 'confirm' && !repeat && performance.now() > okGuard) UI.ok();
             else if (action === 'cancel' && !repeat) UI.back();
             return;
         }
         if (repeat || Game.state !== 'play') return;
-        var slot = Input.slotOf(dev), p = slot >= 0 ? Game.players[slot] : null;
-        if (!p || !p.on) return;
-        var cmd = Input.cmdFor(slot, action);
+        var slot = Input.slotOf(dev);
+        if (slot < 0) return;
         if (action === 'confirm') return;                    // OK / A always send confirm + jump: play uses jump only
+        runCmd(slot, Input.cmdFor(slot, action));
+    }
+    // a command button was pressed (an SDK action above, or a gamepad button read by Input.poll)
+    function runCmd(slot, cmd) {
+        if (!cmd || UI.inMenu() || Game.state !== 'play') return;
+        var p = Game.players[slot];
+        if (!p || !p.on) return;
         if (cmd === 'fire') {
-            if (!p.latch && Input.maps[slot].tac === 'auto' && Game.okWantsTactical(p)) { okGuard = performance.now() + 180; UI.openTactical(slot); }
+            if (!p.latch && Input.mapOf(slot).tac === 'auto' && Game.okWantsTactical(p)) { okGuard = performance.now() + 180; UI.openTactical(slot); }
         } else if (cmd === 'tac') { okGuard = performance.now() + 180; UI.openTactical(slot); }
         else if (cmd === 'swap') Game.cycleWeapon(p);
         else if (cmd === 'nade') Game.playerNade(undefined, p);
     }
+    Input.onPress = runCmd;
 
     MyPC.init({
         onInit: function (inf) {
@@ -105,7 +113,7 @@
                 MyPC.ready();
             };
             atlas.onerror = function () { MyPC.fail('Could not load graphics'); };
-            atlas.src = 'assets/atlas.png';
+            atlas.src = 'assets/atlas.png?v=1.2.0';
         },
         onStart: function () {
             SFX.start(info.volume);
@@ -114,7 +122,7 @@
             startLoop();
         },
         onPause: function () {
-            stopLoop(); SFX.suspend(); Input.clear();
+            stopLoop(); SFX.suspend(); Input.clear(); UI.cancelListen();
             if (info.standalone) document.getElementById('paused').style.display = 'flex';
         },
         onResume: function () {

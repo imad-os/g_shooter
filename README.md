@@ -20,11 +20,16 @@ grenades to flush you out. Walls, crates and rocks really stop bullets, so posit
   with: it becomes Player 1 and every other controller is ignored, so nothing interferes. Switch any time
   with **Players & Controllers**, or from the My PC pause menu (Back) → **Change controller**, which always
   works with the TV remote.
-- **Gamepads** are supported through My PC (up to 4). Default buttons: A fires, B / X switches weapon,
-  Cancel throws a grenade, A with nothing in sight opens the Tactical screen.
-- **Remap buttons** per player in *Players & Controllers → Remap buttons*: Fire, Switch weapon, Throw
-  grenade and Tactical screen can go on A / OK, B · X or Cancel. Choosing a button that is already used
-  swaps the two; Fire always keeps a button. Saved with your profile.
+- **Gamepads** are supported through My PC (up to 4). Default buttons: A fires, Y switches weapon,
+  B throws a grenade, A with nothing in sight opens the Tactical screen.
+- **Remap buttons** per player in *Players & Controllers → Remap buttons*: pick Fire, Switch weapon, Throw
+  grenade or Tactical screen, then press the button you want (10 s to answer). Gamepads can use any button:
+  A, B, X, Y, LB, RB, LT, RT and the stick clicks (read with the Gamepad API, which My PC's frame allows).
+  Back on the remote and Select / Start / Home on a pad stay My PC's, and the D-pad stays movement.
+  The remote / keyboard can use OK, Shift / X or Cancel. A button that is already used swaps the two;
+  pressing a command's own button again clears it; Fire always keeps a button. The remote / keyboard
+  and the gamepad each keep their own map per player, saved with your profile. If a pad cannot be read
+  directly, its buttons fall back to what My PC sends (A, B, X / Y).
 - **2-player co-op (Story)**: *Players & Controllers → Player 2*, then press A on a second controller (the
   one Player 1 uses is refused). Player 2 joins as a green support soldier with their own health, ammo,
   grenades, aim and Tactical screen; the camera frames both. A downed player is back next to the partner
@@ -42,7 +47,8 @@ Gamepads and a second player need My PC: opened directly in a browser, the SDK o
 | OK (hold) | Fire: aim locks onto the best enemy in sight. Stand still for better accuracy (snipers zoom out). |
 | OK with nothing in sight | Tactical screen (time stops): switch weapon, throw a grenade, use a medkit, full map |
 | Back | My PC pause menu: *Arsenal & Map*, *Restart*, *Main menu* |
-| Gamepad / keyboard extras | B · X (Shift) cycles weapons · Cancel (Backspace) throws a grenade (remappable) |
+| Gamepad extras | Y cycles weapons · B throws a grenade (remap to any button, e.g. RT to fire) |
+| Keyboard extras | Shift / X cycles weapons (remappable) |
 
 In a browser: arrows + Enter (or Space / Z to fire), **Esc** pauses.
 

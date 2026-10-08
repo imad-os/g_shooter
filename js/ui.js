@@ -135,30 +135,63 @@ var UI = (function () {
     };
 
     U.remap = function (slot, focusSel) {
-        var m = Input.maps[slot], h = '<div class="head"><h3>' + esc(T('remap')) + '</h3><span class="tag"><i class="pdot p' + (slot + 1) + '"></i>' +
-            esc(T(slot ? 'player2' : 'player1')) + ' · ' + esc(Input.devName(Input.devOf(slot))) + '</span></div><div class="panel list ctl">';
+        var dev = Input.devOf(slot), m = Input.mapOf(slot), h = '<div class="head"><h3>' + esc(T('remap')) + '</h3><span class="tag"><i class="pdot p' + (slot + 1) + '"></i>' +
+            esc(T(slot ? 'player2' : 'player1')) + ' · ' + esc(Input.devName(dev)) + '</span></div><div class="panel list ctl">';
         for (var k = 0; k < Input.CMDS.length; k++) {
             var c = Input.CMDS[k];
             h += '<div class="btn f set" id="r-' + c + '" data-c="' + c + '"><b>' + esc(T('cmd_' + c)) + '</b><span class="val">' + esc(Input.btnName(m[c])) + '</span></div>';
         }
         h += '<div class="btn f set" id="r-reset"><b>' + esc(T('resetDef')) + '</b><span class="val"></span></div>';
-        if (Input.devOf(slot) === 'keys' && m.fire !== 'jump') h += '<p class="note warn">' + esc(T('remoteWarn')) + '</p>';
+        h += '<p class="note">' + esc(T('remapNote')) + '</p>';
+        if (dev === 'keys' && m.fire !== 'jump') h += '<p class="note warn">' + esc(T('remoteWarn')) + '</p>';
         h += '</div><div class="row"><div class="btn f" id="b-back"><b>' + esc(T('back')) + '</b></div></div>';
         screen('remap', h, function () { U.playersScreen(slot ? '#c-m2' : '#c-m1'); }, focusSel);
-        bind('.set[data-c]', function (el) {
-            var c = el.dataset.c, opts = Input.OPTIONS[c], cur = Input.maps[slot][c];
-            var next = opts[(opts.indexOf(cur) + 1) % opts.length];
-            if (!Input.assign(slot, c, next)) { SFX.play('uiError', 0.5); return; }
-            persist();
-            U.remap(slot, '#r-' + c);
-            MyPC.announce(T('cmd_' + c) + ': ' + Input.btnName(next));
-        });
-        bind('#r-reset', function () { Input.maps[slot] = Input.defMap(); persist(); U.remap(slot, '#r-reset'); });
+        bind('.set[data-c]', function (el) { listen(slot, el.dataset.c); });
+        bind('#r-reset', function () { Input.reset(slot); persist(); U.remap(slot, '#r-reset'); });
         bind('#b-back', function () { U.playersScreen(slot ? '#c-m2' : '#c-m1'); });
     };
 
+    // waiting for the button a command goes on: any button of the player's controller except the ones
+    // My PC keeps (Back on the remote, Select / Start / Home on a pad, which never reach the game) and directions
+    U.listening = null;
+    U.guardUntil = 0;
+    function listen(slot, cmd) {
+        U.listening = { slot: slot, cmd: cmd, t: 600, armed: false };
+        var m = document.createElement('div');
+        m.className = 'modal'; m.id = 'listen';
+        m.innerHTML = '<div class="panel"><b>' + esc(T('pressFor')) + ' ' + esc(T('cmd_' + cmd)) + '</b><p class="note">' + esc(T('listenHint')) + '</p><small id="lis-t">10</small></div>';
+        $('screen').appendChild(m);
+        MyPC.announce(T('pressFor') + ' ' + T('cmd_' + cmd));
+    }
+    function endListen() { U.listening = null; U.guardUntil = performance.now() + 300; var m = $('listen'); if (m) m.remove(); }
+    U.cancelListen = function () { if (U.listening) endListen(); };
+    function listenGot(b) {
+        var L2 = U.listening, got = Input.assign(L2.slot, L2.cmd, b);
+        endListen();
+        if (!got) { SFX.play('uiError', 0.6); U.toastSmall(T('fireKeeps')); MyPC.announce(T('fireKeeps')); return; }
+        SFX.play('uiOk', 0.6);
+        persist();
+        U.remap(L2.slot, '#r-' + L2.cmd);
+        MyPC.announce(T('cmd_' + L2.cmd) + ': ' + Input.btnName(got));
+    }
+    // an SDK action from the remote / keyboard (or from a pad the game cannot read directly)
+    U.listenAction = function (dev, action, pressed) {
+        var L2 = U.listening;
+        if (!pressed || dev !== Input.devOf(L2.slot) || !L2.armed || Input.padReadable(dev)) return;
+        var b = Input.buttonFromAction(dev, action);
+        if (b) listenGot(b);
+    };
+    function listenTick() {
+        var L2 = U.listening, dev = Input.devOf(L2.slot), raw = Input.padReadable(dev), i = raw ? Input.padPressed(dev) : -1;
+        // the press that opened this window does not count: wait until everything is let go first
+        if (!L2.armed) { if (i < 0 && !Input.anyButton(dev)) L2.armed = true; }
+        else if (i >= 0) { listenGot('b' + i); return; }
+        if (--L2.t <= 0) { endListen(); U.toastSmall(T('timeout')); SFX.play('uiBack', 0.5); }
+        else if (L2.t % 60 === 0) { var lt = $('lis-t'); if (lt) lt.textContent = String(L2.t / 60); }
+    }
+
     function screen(name, html, back, first) {
-        U.screen = name;
+        U.screen = name; U.listening = null;
         var s = $('screen');
         s.className = 'screen s-' + name;
         s.innerHTML = html;
@@ -167,7 +200,7 @@ var UI = (function () {
         var f = first ? s.querySelector(first) : null;
         setFocus(f || s.querySelector('.f'), true);
     }
-    function closeScreen() { U.screen = ''; var s = $('screen'); s.style.display = 'none'; s.innerHTML = ''; focusEl = null; onBack = null; }
+    function closeScreen() { U.screen = ''; U.listening = null; var s = $('screen'); s.style.display = 'none'; s.innerHTML = ''; focusEl = null; onBack = null; }
     function bind(sel, fn) { var els = $('screen').querySelectorAll(sel); for (var k = 0; k < els.length; k++) els[k].onok = fn.bind(null, els[k]); }
 
     /* ---------------- title ---------------- */
@@ -501,6 +534,7 @@ var UI = (function () {
             if (--U.capturing.t <= 0) { endCapture(); U.toastSmall(T('timeout')); SFX.play('uiBack', 0.5); }
             else if (U.capturing.t % 60 === 0) { var ct = $('cap-t'); if (ct) ct.textContent = String(U.capturing.t / 60); }
         }
+        if (U.listening) listenTick();
     };
 
     U.updateHud = function () {
