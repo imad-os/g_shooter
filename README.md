@@ -65,6 +65,23 @@ enemies may shoot at you at the same time. Retrying a stage keeps the same map.
 image), `css/fonts.css` (embedded fonts), `js/sounds.js` (sounds embedded so the game also runs from a
 plain file).
 
+## Rebuilding the assets (adding sprites, sounds, expansions)
+
+The game itself needs no build step; these tools only regenerate `assets/atlas.png`, `js/atlas.js`,
+`js/sounds.js` and `css/fonts.css`. They need Python 3 with Pillow (`pip install pillow`) and ffmpeg.
+
+1. `python tools/fetch_assets.py` downloads the source packs into `tools/downloads/` (git-ignored).
+   To use a new pack, add its URL to `SOURCES` there.
+2. Add what you need to `tools/build_assets.py`:
+   - a tile: a line in `TILES` (its index in Kenney's tilesheet = row × 27 + column)
+   - a particle or animation: a line in `PARTICLES` or `ANIMS`
+   - a sound: a line in `SOUNDS` (file, start and end in seconds to cut a single shot)
+3. `python tools/build_assets.py` rebuilds everything, or `atlas`, `sounds` or `fonts` for one part.
+   If ffmpeg is not on the PATH, set `FFMPEG` to its full path.
+4. Use the new names in the code: sprites by name (`t_…`, `c_…`, `p_…`, `x_…`), sounds with `SFX.play('name')`.
+
+Positions inside the atlas can change on every rebuild; the game always looks sprites up by name, so that is fine.
+
 ## Credits
 
 - Art: [Kenney](https://kenney.nl) Top-down Shooter, Particle Pack, Smoke Particles (CC0)
