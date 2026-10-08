@@ -21,7 +21,8 @@ grenades to flush you out. Walls, crates and rocks really stop bullets, so posit
   with **Players & Controllers**, or from the My PC pause menu (Back) → **Change controller**, which always
   works with the TV remote.
 - **Gamepads** are supported through My PC (up to 4). Default buttons: A fires, Y switches weapon,
-  B throws a grenade, X uses a medkit, A with nothing in sight opens the Tactical screen.
+  B throws a grenade, X uses a medkit, LB reloads, A with nothing in sight opens the Tactical screen.
+  A magazine that runs dry still reloads by itself. Reload has no default on the remote (map the red button to it if you like).
 - **TV remote**: My PC passes only OK and the **red button** to games (Channel Up / Down, Play / Pause and
   Back are My PC's; the green, yellow and blue buttons are not passed on). OK fires, the red button uses a
   medkit; both can be remapped. Any new remote button My PC passes on later can be mapped with no update.
@@ -57,7 +58,7 @@ Gamepads and a second player need My PC: opened directly in a browser, the SDK o
 | OK with nothing in sight | Tactical screen (time stops): switch weapon, throw a grenade, use a medkit, full map |
 | Back | My PC pause menu: *Arsenal & Map*, *Restart*, *Main menu* |
 | Red button (R on a keyboard) | Use a medkit (remappable) |
-| Gamepad extras | Y cycles weapons · B throws a grenade · X uses a medkit (remap to any button, e.g. RT to fire) |
+| Gamepad extras | LB reloads · Y cycles weapons · B throws a grenade · X uses a medkit (remap to any button, e.g. RT to fire) |
 | Keyboard extras | Shift / X cycles weapons (remappable) |
 
 In a browser: arrows + Enter (or Space / Z to fire), **Esc** pauses.
@@ -128,3 +129,10 @@ Positions inside the atlas can change on every rebuild; the game always looks sp
   "synthesized explosion" by qubodup (all CC0)
 - Music: "Tension Based Loops" by VividReality, OpenGameArt (CC-BY 3.0)
 - Fonts: Rajdhani and Cairo (SIL Open Font License 1.1)
+
+## Difficulty (1.4.0)
+
+Veteran (the default) and Recruit were made easier: enemies hit softer, react later and miss more, early
+stages allow only two enemies to shoot at once, the first boss (The Warden) has less health, shorter LMG
+bursts and calls fewer guards, every boss and the marksman snipers hit softer, and Green Hollow stages have
+fewer enemies. Elite is unchanged.

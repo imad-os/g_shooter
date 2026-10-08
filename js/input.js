@@ -17,7 +17,7 @@ var Input = (function () {
                          tab: 1, tabBack: 1, padLost: 1, padConnected: 1 };
     var PAD_RESERVED = { 8: 1, 9: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1 };   // Select, Start, D-pad, Home
     var PAD_MAX = 18;
-    var CMDS = ['fire', 'swap', 'nade', 'med', 'tac'];
+    var CMDS = ['fire', 'reload', 'swap', 'nade', 'med', 'tac'];
     var I = { p1: null, p2: null, maps: [null, null], CMDS: CMDS, onPress: null };
 
     function kind(dev) { return dev && dev.indexOf('pad') === 0 ? 'pad' : 'keys'; }
@@ -27,8 +27,8 @@ var Input = (function () {
     function empty(c) { return c === 'tac' ? 'auto' : 'none'; }
     I.kind = kind;
 
-    I.defKeys = function () { return { fire: 'jump', swap: 'run', nade: 'cancel', med: 'runToggle', tac: 'auto' }; };
-    I.defPad = function () { return { fire: 'b0', swap: 'b3', nade: 'b1', med: 'b2', tac: 'auto' }; };     // A, Y, B, X
+    I.defKeys = function () { return { fire: 'jump', reload: 'none', swap: 'run', nade: 'cancel', med: 'runToggle', tac: 'auto' }; };
+    I.defPad = function () { return { fire: 'b0', reload: 'b4', swap: 'b3', nade: 'b1', med: 'b2', tac: 'auto' }; };     // A, LB, Y, B, X
     I.defMap = function () { return { keys: I.defKeys(), pad: I.defPad() }; };
     I.maps[0] = I.defMap(); I.maps[1] = I.defMap();
 

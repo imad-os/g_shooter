@@ -203,7 +203,7 @@ var Game = (function () {
                 var b = G.bullets[j];
                 if (b.on) continue;
                 b.on = true; b.x = b.sx = bx; b.y = b.sy = by; b.vx = Math.cos(ang) * sp; b.vy = Math.sin(ang) * sp;
-                b.dmg = wd.dmg * (a.ai && a.team === 1 ? 0.62 * G.stageDmg : 1); b.team = a.team; b.owner = a; b.dist = 0; b.range = wd.range; b.life = 0;
+                b.dmg = wd.dmg * (a.ai && a.team === 1 ? 0.62 * G.stageDmg * (a.def.dmgMul || 1) : 1); b.team = a.team; b.owner = a; b.dist = 0; b.range = wd.range; b.life = 0;
                 b.pen = wd.pen || 0; b.knock = wd.knock; b.ignore = null; b.sniper = wd.cat === 'sniper'; b.enemy = a.team === 1; b.bounced = false;
                 break;
             }
@@ -988,7 +988,7 @@ var Game = (function () {
             var type = waves[a.bossWaveDone]; a.bossWaveDone++;
             G.bossWave = a.bossWaveDone;
             var cnt = 0;
-            for (var k = 0; k < 40 && cnt < 3; k++) {
+            for (var k = 0; k < 40 && cnt < (G.op === 0 ? 2 : 3); k++) {           // the first boss calls fewer guards
                 var ti = World.randomNear(Math.floor(a.x / TILE), Math.floor(a.y / TILE), 12, 5);
                 if (ti < 0) continue;
                 var x = (ti % World.w) * TILE + 16, y = ((ti / World.w) | 0) * TILE + 16;
@@ -1124,6 +1124,12 @@ var Game = (function () {
         if (a.isPlayer) { SFX.play('pickup', 0.6); UI.toastSmall((G.coop ? 'P' + (a.slot + 1) + '  ' : '') + '+ ' + msg); UI.hud.dirty = true; }
     }
 
+    // reload on demand (a magazine that runs dry still reloads by itself)
+    G.playerReload = function (p) {
+        if (!p || !p.on || p.reloadT > 0) return;
+        p.burstLeft = 0;
+        startReload(p);
+    };
     G.useMedkit = function (p) {
         p = p || G.player;
         if (!p || !p.on || p.medkits <= 0 || p.hp >= p.maxHp) return false;
@@ -1291,8 +1297,8 @@ var Game = (function () {
         var stageNo = op * 3 + st;
         G.stageHp = (1 + stageNo * 0.02) * G.diff.hp;
         // the campaign ramps up: early stages hit softer and react slower
-        G.stageDmg = 0.75 + stageNo * 0.025; G.stageReact = Math.round((11 - stageNo) * 1.5);
-        G.maxTokens = Math.min(3, 2 + Math.floor(stageNo / 5)) + (G.diffName === 'elite' ? 1 : 0);
+        G.stageDmg = 0.62 + stageNo * 0.03; G.stageReact = Math.round((12 - stageNo) * 1.6);
+        G.maxTokens = Math.min(3, 2 + Math.floor(stageNo / 6)) + (G.diffName === 'elite' ? 1 : 0);
         World.generate({ w: S.w, h: S.h, theme: O.theme, seed: 1000 + stageNo * 7919 + ((save.seeds && save.seeds[stageNo]) || 0), spawnX: 4, spawnY: (S.h / 2) | 0 });
         Render.buildFloor();
         var nu = save.nades, p = null;

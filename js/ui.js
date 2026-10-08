@@ -142,8 +142,9 @@ var UI = (function () {
             h += '<div class="btn f set" id="r-' + c + '" data-c="' + c + '"><b>' + esc(T('cmd_' + c)) + '</b><span class="val">' + esc(Input.btnName(m[c])) + '</span></div>';
         }
         h += '<div class="btn f set" id="r-reset"><b>' + esc(T('resetDef')) + '</b><span class="val"></span></div>';
-        h += '<p class="note">' + esc(T('remapNote')) + '</p>';
+        // one note only, so the list and Back always fit on screen
         if (dev === 'keys' && m.fire !== 'jump') h += '<p class="note warn">' + esc(T('remoteWarn')) + '</p>';
+        else h += '<p class="note">' + esc(T('remapNote')) + '</p>';
         h += '</div><div class="row"><div class="btn f" id="b-back"><b>' + esc(T('back')) + '</b></div></div>';
         screen('remap', h, function () { U.playersScreen(slot ? '#c-m2' : '#c-m1'); }, focusSel);
         bind('.set[data-c]', function (el) { listen(slot, el.dataset.c); });

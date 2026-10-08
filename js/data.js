@@ -36,17 +36,17 @@ var ENEMIES = {
     rifleman:  { sprite: 'soldier1',   hp: 90,  speed: 1.6,  wpn: 'falcon',   acc: 1.15, react: 38, role: 'rifleman', burst: [3, 6], nade: 0.25 },
     scout:     { sprite: 'womanGreen', hp: 70,  speed: 2.15, wpn: 'kestrel',  acc: 1.3,  react: 30, role: 'flanker',  burst: [4, 8] },
     brute:     { sprite: 'manBrown',   hp: 115, speed: 1.9,  wpn: 'breacher', acc: 1.0,  react: 30, role: 'rusher',   burst: [1, 1] },
-    marksman:  { sprite: 'hitman1',    hp: 70,  speed: 1.5,  wpn: 'needle',   acc: 1.0,  react: 50, role: 'sniper',   burst: [1, 1], laser: 70 },
+    marksman:  { sprite: 'hitman1',    hp: 70,  speed: 1.5,  wpn: 'needle',   acc: 1.0,  react: 58, dmgMul: 0.6, role: 'sniper',   burst: [1, 1], laser: 70 },
     grenadier: { sprite: 'manOld',     hp: 100, speed: 1.55, wpn: 'ironwood', acc: 1.2,  react: 40, role: 'rifleman', burst: [1, 2], nade: 1 },
     heavy:     { sprite: 'robot1',     hp: 230, speed: 1.15, wpn: 'anvil',    acc: 1.5,  react: 44, role: 'heavy',    burst: [6, 10], armor: 0.65 }
 };
 
 // bosses: big, tinted, phases at hp thresholds spawn reinforcements
 var BOSSES = {
-    warden:     { name: 'The Warden',    sprite: 'manBrown',  hp: 1000, speed: 1.15, wpn: 'anvil',     acc: 1.45, react: 40, role: 'heavy',  burst: [12, 18], armor: 0.75, scale: 1.45, tint: '#ff5a3c', nade: 0.5, waves: ['grunt', 'rifleman', 'grunt'] },
-    viper:      { name: 'Viper',         sprite: 'hitman1',   hp: 600,  speed: 2.2,  wpn: 'needle',    acc: 0.7,  react: 30, role: 'sniper', burst: [1, 1], laser: 52, scale: 1.3, tint: '#b04dff', smoke: true, waves: ['brute', 'scout', 'brute'] },
-    juggernaut: { name: 'Juggernaut',    sprite: 'robot1',    hp: 1300, speed: 1.0,  wpn: 'twinox',    acc: 1.0,  react: 30, role: 'heavy',  burst: [1, 2], scale: 1.6, tint: '#ffb020', frontArmor: 0.45, turn: 0.022, launcher: true, waves: ['rifleman', 'grenadier', 'heavy'] },
-    marshal:    { name: 'The Marshal',   sprite: 'soldier1',  hp: 1250, speed: 1.75, wpn: 'ironwood',  acc: 0.95, react: 30, role: 'rifleman', burst: [2, 3], armor: 0.9, scale: 1.4, tint: '#ff2e63', smoke: true, nade: 0.8, berserk: 'anvil', waves: ['scout', 'marksman', 'heavy', 'brute'] }
+    warden:     { name: 'The Warden',    sprite: 'manBrown',  hp: 800,  speed: 1.15, wpn: 'anvil',     acc: 1.6,  react: 48, role: 'heavy',  burst: [7, 11], dmgMul: 0.75, armor: 0.75, scale: 1.45, tint: '#ff5a3c', nade: 0.5, waves: ['grunt', 'rifleman', 'grunt'] },
+    viper:      { name: 'Viper',         sprite: 'hitman1',   hp: 600,  speed: 2.2,  wpn: 'needle',    acc: 0.8,  dmgMul: 0.6,  react: 30, role: 'sniper', burst: [1, 1], laser: 52, scale: 1.3, tint: '#b04dff', smoke: true, waves: ['brute', 'scout', 'brute'] },
+    juggernaut: { name: 'Juggernaut',    sprite: 'robot1',    hp: 1300, speed: 1.0,  wpn: 'twinox',    dmgMul: 0.85,    acc: 1.0,  react: 30, role: 'heavy',  burst: [1, 2], scale: 1.6, tint: '#ffb020', frontArmor: 0.45, turn: 0.022, launcher: true, waves: ['rifleman', 'grenadier', 'heavy'] },
+    marshal:    { name: 'The Marshal',   sprite: 'soldier1',  hp: 1250, speed: 1.75, wpn: 'ironwood',  dmgMul: 0.85,  acc: 0.95, react: 30, role: 'rifleman', burst: [2, 3], armor: 0.9, scale: 1.4, tint: '#ff2e63', smoke: true, nade: 0.8, berserk: 'anvil', waves: ['scout', 'marksman', 'heavy', 'brute'] }
 };
 
 // map themes. floors/alt/inner are atlas tile names (t_...)
@@ -70,9 +70,9 @@ var CAMPAIGN = [
         { w: 50, h: 36, n: 15, mix: { grunt: 5, rifleman: 4, scout: 2 }, unlock: 'kestrel' },
         { w: 48, h: 36, n: 9,  mix: { grunt: 3, rifleman: 4, brute: 1 }, unlock: 'tempest', nadeUnlock: 'flash' } ] },
     { name: 'Green Hollow',  theme: 'forest',  boss: 'viper',      stages: [
-        { w: 52, h: 38, n: 17, mix: { rifleman: 4, scout: 3, brute: 2, marksman: 1 }, unlock: 'longbow' },
-        { w: 54, h: 40, n: 20, mix: { rifleman: 4, scout: 3, brute: 2, marksman: 2 }, unlock: 'vex' },
-        { w: 52, h: 38, n: 11, mix: { rifleman: 3, scout: 2, marksman: 1, brute: 2 }, unlock: 'ironwood', nadeUnlock: 'fire' } ] },
+        { w: 52, h: 38, n: 13, mix: { rifleman: 4, scout: 3, brute: 2, marksman: 1 }, unlock: 'longbow' },
+        { w: 54, h: 40, n: 16, mix: { rifleman: 5, scout: 3, brute: 2, marksman: 1 }, unlock: 'vex' },
+        { w: 52, h: 38, n: 9,  mix: { rifleman: 3, scout: 2, marksman: 1, brute: 2 }, unlock: 'ironwood', nadeUnlock: 'fire' } ] },
     { name: 'Iron Docks',    theme: 'docks',   boss: 'juggernaut', stages: [
         { w: 56, h: 40, n: 19, mix: { rifleman: 4, scout: 2, brute: 2, marksman: 1, grenadier: 2 }, unlock: 'bastion' },
         { w: 58, h: 42, n: 22, mix: { rifleman: 4, scout: 2, brute: 2, marksman: 2, grenadier: 2, heavy: 1 }, unlock: 'twinox' },
@@ -89,7 +89,7 @@ var P_TINT = ['#2f8cff', '#2fe06a'];          // player 1 blue, player 2 green
 
 // difficulty presets: damage dealt to the player, enemy reaction bonus (frames), enemy accuracy multiplier
 var DIFFS = {
-    recruit: { dmgIn: 0.45, react: 16, acc: 1.25, hp: 0.85 },
-    veteran: { dmgIn: 0.7,  react: 0,  acc: 1.0,  hp: 1.0 },
+    recruit: { dmgIn: 0.35, react: 24, acc: 1.45, hp: 0.75 },
+    veteran: { dmgIn: 0.55, react: 8,  acc: 1.12, hp: 0.9 },
     elite:   { dmgIn: 1.0,  react: -10, acc: 0.85, hp: 1.15 }
 };

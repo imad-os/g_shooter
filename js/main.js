@@ -90,6 +90,7 @@
         } else if (cmd === 'tac') { okGuard = performance.now() + 180; UI.openTactical(slot); }
         else if (cmd === 'swap') Game.cycleWeapon(p);
         else if (cmd === 'nade') Game.playerNade(undefined, p);
+        else if (cmd === 'reload') Game.playerReload(p);
         else if (cmd === 'med' && !Game.useMedkit(p)) UI.toastSmall((Game.coop ? 'P' + (slot + 1) + '  ' : '') + T(p.medkits > 0 ? 'hpFull' : 'noMedkit'));
     }
     Input.onPress = runCmd;
@@ -116,7 +117,7 @@
                 MyPC.ready();
             };
             atlas.onerror = function () { MyPC.fail('Could not load graphics'); };
-            atlas.src = 'assets/atlas.png?v=1.3.0';
+            atlas.src = 'assets/atlas.png?v=1.4.0';
         },
         onStart: function () {
             SFX.start(info.volume);
