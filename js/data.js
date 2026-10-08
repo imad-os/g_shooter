@@ -83,6 +83,9 @@ var CAMPAIGN = [
         { w: 58, h: 42, n: 16, mix: { rifleman: 3, scout: 2, marksman: 2, grenadier: 2, heavy: 2, brute: 2 } } ] }
 ];
 var START_WEAPONS = ['p9', 'breacher', 'falcon', 'needle'];
+// shop: credits are earned in play and spent on medkits
+var MEDKIT_COST = 100, MAX_KITS = 6, MAX_CARRY = 3, CR_KILL = 10, CR_STAGE = 100, CR_BOSS = 150, CR_BR_WIN = 200;
+var P_TINT = ['#2f8cff', '#2fe06a'];          // player 1 blue, player 2 green
 
 // difficulty presets: damage dealt to the player, enemy reaction bonus (frames), enemy accuracy multiplier
 var DIFFS = {

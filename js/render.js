@@ -190,7 +190,7 @@ var Render = (function () {
         var bySprite = actorCache[a.tint || a.sprite];
         if (!bySprite) bySprite = actorCache[a.tint || a.sprite] = {};
         var c = bySprite[pose];
-        if (!c) c = bySprite[pose] = sprite('c_' + a.sprite + '_' + pose, a.tint, a.tint ? 0.38 : 0);
+        if (!c) c = bySprite[pose] = sprite('c_' + a.sprite + '_' + pose, a.tint, a.tint ? (a.isPlayer ? 0.5 : 0.38) : 0);
         return c;
     }
 
@@ -378,7 +378,7 @@ var Render = (function () {
         if (!b || !b.on) return a;
         return b.hp < a.hp ? b : a;
     }
-    var PCOL = ['#3ee6ff', '#5dff7a'];
+    var PCOL = ['#4aa8ff', '#5dff7a'];     // player 1 blue, player 2 green
     function drawReticle(c, P, f, coop) {
         if (!P || !P.on || Game.state !== 'play' || (!P.tA && P.tB < 0)) return;
         var rx = P.tX, ry = P.tY, rs = (P.tA ? P.tA.r + 9 : 18) + Math.sin(f * 0.2 + P.slot * 2) * 2 + P.slot * 4;
@@ -396,11 +396,11 @@ var Render = (function () {
         var img = actorImg(a);
         if (!img) return;
         var s = 0.5 * a.scale, inBush = World.tileAt(a.x, a.y) === T_BUSH;
-        // shadow and team ring
+        // shadow and team ring (enemies)
         c.fillStyle = 'rgba(0,0,0,0.35)'; c.beginPath(); c.ellipse(a.x + 3, a.y + 4, a.r * 1.05, a.r * 0.9, 0, 0, 6.283); c.fill();
-        if (a.isPlayer) { c.strokeStyle = PCOL[a.slot]; c.lineWidth = 2.5; c.beginPath(); c.arc(a.x, a.y, a.r + 5, 0, 6.283); c.stroke(); }
-        else if (a.boss) { c.globalAlpha = 0.6 + 0.3 * Math.sin(f * 0.1); c.strokeStyle = '#ff3c3c'; c.lineWidth = 3; c.beginPath(); c.arc(a.x, a.y, a.r + 6, 0, 6.283); c.stroke(); c.globalAlpha = 1; }
-        else if (Game.mode !== 'attract') { c.strokeStyle = a.team === 1 ? 'rgba(255,70,70,0.7)' : 'rgba(255,170,60,0.7)'; c.lineWidth = 1.5; c.beginPath(); c.arc(a.x, a.y, a.r + 3, 0, 6.283); c.stroke(); }
+        // players have no ring: they are told apart by their blue / green shade
+        if (a.boss) { c.globalAlpha = 0.6 + 0.3 * Math.sin(f * 0.1); c.strokeStyle = '#ff3c3c'; c.lineWidth = 3; c.beginPath(); c.arc(a.x, a.y, a.r + 6, 0, 6.283); c.stroke(); c.globalAlpha = 1; }
+        else if (!a.isPlayer && Game.mode !== 'attract') { c.strokeStyle = a.team === 1 ? 'rgba(255,70,70,0.7)' : 'rgba(255,170,60,0.7)'; c.lineWidth = 1.5; c.beginPath(); c.arc(a.x, a.y, a.r + 3, 0, 6.283); c.stroke(); }
         c.save(); c.translate(a.x, a.y); c.rotate(a.angle);
         if (inBush && a.isPlayer) c.globalAlpha = 0.6;
         c.drawImage(img, -img.width * s * 0.42, -img.height * s / 2, img.width * s, img.height * s);

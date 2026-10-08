@@ -68,7 +68,7 @@ var UI = (function () {
     U.back = function () { if (onBack) { SFX.play('uiBack', 0.6); onBack(); } };
     U.inMenu = function () { return !!U.screen; };
     // only the controller in charge moves through the menus: Player 1's, or the player who opened the tactical screen
-    U.menuDev = function () { return U.screen === 'tactical' ? Input.devOf(U.tacSlot) : Input.p1; };
+    U.menuDev = function () { return U.screen === 'tactical' || (U.screen === 'shop' && shopInGame) ? Input.devOf(U.tacSlot) : Input.p1; };
 
     /* ---------------- controllers ---------------- */
 
@@ -220,6 +220,7 @@ var UI = (function () {
             '<div class="btn f big" id="m-br"><b>' + esc(T('br')) + '</b><small>' + esc(T('wins')) + ' ' + sv.stats.brWins + '</small></div>' +
             '<div class="btn f" id="m-players"><b>' + esc(T('players')) + '</b><small>' + esc(Input.devName(Input.p1)) + (Input.p2 ? ' + ' + esc(T('coop')) : '') + '</small></div>' +
             '<div class="btn f" id="m-arsenal"><b>' + esc(T('arsenal')) + '</b></div>' +
+            '<div class="btn f" id="m-shop"><b>' + esc(T('shop')) + '</b><small>' + sv.credits + ' ' + esc(T('cr')) + '</small></div>' +
             '<div class="btn f" id="m-settings"><b>' + esc(T('settings')) + '</b></div>' +
             '<div class="btn f" id="m-howto"><b>' + esc(T('howto')) + '</b></div>' +
             '</div>' +
@@ -229,6 +230,7 @@ var UI = (function () {
         bind('#m-story', function () { U.campaign(); });
         bind('#m-br', function () { U.brScreen(); });
         bind('#m-arsenal', function () { U.loadout(false); });
+        bind('#m-shop', function () { U.shop(false); });
         bind('#m-players', function () { U.playersScreen(); });
         bind('#m-settings', function () { U.settingsScreen(); });
         bind('#m-howto', function () { U.howto(); });
@@ -429,19 +431,55 @@ var UI = (function () {
             h += '<div class="slot nade f' + (p.nades[n] > 0 ? '' : ' off') + '" data-n="' + n + '"><i class="dot" style="background:' + NADES[n].color + '"></i><b>' + esc(T(NADES[n].id)) + '</b><span class="am">× ' + p.nades[n] + '</span></div>';
         }
         h += '<div class="slot med f' + (p.medkits > 0 && p.hp < p.maxHp ? '' : ' off') + '" id="t-med"><i class="cross"></i><b>' + esc(T('medkit')) + '</b><span class="am">× ' + p.medkits + '</span></div>';
-        h += '</div><div class="row"><div class="btn f primary" id="t-resume"><b>' + esc(T('resume')) + '</b></div></div></div>' +
+        h += '</div><div class="row"><div class="btn f primary" id="t-resume"><b>' + esc(T('resume')) + '</b></div>' +
+            '<div class="btn f" id="t-shop"><b>' + esc(T('shop')) + '</b><small>' + U.save.credits + ' ' + esc(T('cr')) + '</small></div></div></div>' +
             '<div class="tright panel"><div class="maphead"><b>' + esc(T('map')) + '</b>' + mapLegend() + '</div><canvas id="tmap" width="760" height="560"></canvas></div></div>';
         screen('tactical', h, U.closeTactical, '.slot.eq');
         bind('.slot[data-s]', function (el) { Game.selectSlot(+el.dataset.s, p); U.closeTactical(); });
         bind('.slot[data-n]', function (el) { Game.playerNade(+el.dataset.n, p); U.closeTactical(); });
         bind('#t-med', function () { Game.useMedkit(p); U.closeTactical(); });
         bind('#t-resume', U.closeTactical);
+        bind('#t-shop', function () { U.shop(true); });
         var mc = $('tmap');
         Render.drawMap(mc.getContext('2d'), mc.width, mc.height, true);
         MyPC.announce(T('tactical'));
     };
+    /* ---------------- shop: credits earned in play buy medkits ---------------- */
+
+    var shopInGame = false;
+    U.addCredits = function (n) { U.save.credits = Math.min(999999, U.save.credits + n); U.runCredits += n; };
+    U.runCredits = 0;
+    // in play (from the Tactical screen) a medkit goes straight to that player's kit; from the main menu it goes
+    // to the reserve, and each player takes from the reserve at the start of the next mission
+    U.shop = function (inGame, focusSel) {
+        shopInGame = inGame;
+        var sv = U.save, p = inGame ? Game.players[U.tacSlot] : null;
+        var have = inGame ? p.medkits : sv.kits, max = inGame ? MAX_CARRY : MAX_KITS;
+        var can = sv.credits >= MEDKIT_COST && have < max;
+        screen('shop', '<div class="head"><h3>' + esc(T('shop')) + '</h3><span class="tag">' + sv.credits + ' ' + esc(T('cr')) + '</span></div>' +
+            '<div class="panel list ctl">' +
+            '<div class="btn f set' + (can ? '' : ' off') + '" id="sh-med"><b><i class="cross"></i> ' + esc(T('buyMedkit')) + '</b><span class="val">' + MEDKIT_COST + ' ' + esc(T('cr')) + '</span></div>' +
+            '<p class="note">' + esc(T(inGame ? 'shopCarry' : 'shopReserve')) + ': <b>' + have + ' / ' + max + '</b></p>' +
+            '<p class="note">' + esc(T('shopEarn')) + '</p>' +
+            '</div><div class="row"><div class="btn f" id="b-back"><b>' + esc(T('back')) + '</b></div></div>', shopBack, focusSel);
+        bind('#sh-med', function () {
+            if (sv.credits < MEDKIT_COST) { U.toastSmall(T('noCredits')); MyPC.announce(T('noCredits')); return; }
+            if (inGame) p.medkits++; else sv.kits++;
+            sv.credits -= MEDKIT_COST;
+            persist(); U.hud.dirty = true;
+            MyPC.announce(T('medkit') + ' ' + (have + 1) + ' / ' + max);
+            U.shop(inGame, '#sh-med');
+        });
+        bind('#b-back', shopBack);
+    };
+    function shopBack() {
+        if (!shopInGame) { U.title(); return; }
+        if (Game.state === 'tactical') Game.state = 'play';
+        U.openTactical(U.tacSlot);
+    }
+
     function mapLegend() {
-        return '<span class="lg"><i style="background:#3ee6ff"></i>YOU</span><span class="lg"><i style="background:#ff4b4b"></i>' + esc(T('hostiles')) + '</span>' +
+        return '<span class="lg"><i style="background:#4aa8ff"></i>YOU</span><span class="lg"><i style="background:#ff4b4b"></i>' + esc(T('hostiles')) + '</span>' +
             '<span class="lg"><i style="background:#ffd34d"></i>' + esc(T('arsenal')) + '</span><span class="lg"><i style="background:#ff5a6a"></i>' + esc(T('medkit')) + '</span>';
     }
     U.closeTactical = function () {
@@ -454,6 +492,7 @@ var UI = (function () {
 
     /* ---------------- results ---------------- */
 
+    function crLine() { return '<div class="unlock">' + esc(T('crEarned')) + ': <b>+' + U.runCredits + ' ' + esc(T('cr')) + '</b> · ' + esc(T('shop')) + ': ' + U.save.credits + ' ' + esc(T('cr')) + '</div>'; }
     U.showResult = function (r) {
         hudVisible(false);
         MyPC.setMenu([]);
@@ -468,6 +507,7 @@ var UI = (function () {
                     if (S.nadeUnlock && sv.nades.indexOf(S.nadeUnlock) < 0) { sv.nades.push(S.nadeUnlock); unlocked += (unlocked ? ' + ' : '') + T(S.nadeUnlock); }
                 }
                 if (r.score > (sv.best[idx] || 0)) sv.best[idx] = r.score;
+                U.addCredits(CR_STAGE + (Game.isBoss ? CR_BOSS : 0));
                 MyPC.submitScore(r.score);
                 SFX.play('uiWin', 0.8);
             }
@@ -475,7 +515,7 @@ var UI = (function () {
             title = r.won ? T('complete') : T('failed');
             h = '<div class="res ' + (r.won ? 'win' : 'lose') + '"><h1>' + esc(title) + '</h1><h2>' + esc(CAMPAIGN[Game.op].name) + ' ' + (Game.op + 1) + '-' + (Game.st + 1) + '</h2>' +
                 '<div class="grid">' + stat(T('kills'), r.kills) + stat(T('accuracy'), Math.round(r.acc * 100) + '%') + stat(T('time'), fmtTime(r.secs)) + stat(T('score'), r.score) + '</div>' +
-                (unlocked ? '<div class="unlock">' + esc(T('unlocked')) + ': <b>' + esc(unlocked) + '</b></div>' : '') +
+                crLine() + (unlocked ? '<div class="unlock">' + esc(T('unlocked')) + ': <b>' + esc(unlocked) + '</b></div>' : '') +
                 '<div class="row">' + (r.won ? (idx + 1 < 12 ? '<div class="btn f primary" id="r-next"><b>' + esc(T('next')) + '</b></div>' : '') : '<div class="btn f primary" id="r-retry"><b>' + esc(T('retry')) + '</b></div>') +
                 (r.won ? '<div class="btn f" id="r-retry"><b>' + esc(T('retry')) + '</b></div>' : '') +
                 '<div class="btn f" id="r-menu"><b>' + esc(T('menu')) + '</b></div></div></div>';
@@ -484,14 +524,14 @@ var UI = (function () {
             bind('#r-retry', function () { U.deploy(idx); });
         } else {
             sv.stats.brGames++;
-            if (r.place === 1) sv.stats.brWins++;
+            if (r.place === 1) { sv.stats.brWins++; U.addCredits(CR_BR_WIN); }
             if (!sv.stats.brBest || r.place < sv.stats.brBest) sv.stats.brBest = r.place;
             sv.stats.kills += r.kills;
             persist();
             MyPC.submitScore(r.score);
             title = r.place === 1 ? T('winner') : T('eliminated');
             h = '<div class="res ' + (r.place === 1 ? 'win' : 'lose') + '"><h1>' + esc(title) + '</h1><h2>' + esc(T('place')) + ' #' + r.place + ' / ' + r.total + '</h2>' +
-                '<div class="grid">' + stat(T('kills'), r.kills) + stat(T('accuracy'), Math.round(r.acc * 100) + '%') + stat(T('time'), fmtTime(r.secs)) + stat(T('score'), r.score) + '</div>' +
+                '<div class="grid">' + stat(T('kills'), r.kills) + stat(T('accuracy'), Math.round(r.acc * 100) + '%') + stat(T('time'), fmtTime(r.secs)) + stat(T('score'), r.score) + '</div>' + crLine() +
                 '<div class="row"><div class="btn f primary" id="r-again"><b>' + esc(T('br')) + '</b></div><div class="btn f" id="r-menu"><b>' + esc(T('menu')) + '</b></div></div></div>';
             screen('result', h, U.title);
             bind('#r-again', U.startBR);
@@ -506,7 +546,7 @@ var UI = (function () {
 
     function hudVisible(v) { $('hud').style.display = v ? '' : 'none'; }
     function startHud() {
-        hudVisible(true); lastHud = {}; U.hud.dirty = true; feedList.length = 0; $('feed').innerHTML = '';
+        hudVisible(true); lastHud = {}; U.hud.dirty = true; U.runCredits = 0; $('downs').innerHTML = ''; feedList.length = 0; $('feed').innerHTML = '';
         $('hint').style.display = U.settings.hints ? '' : 'none'; $('hint').classList.remove('fade'); U.hintT = 0;
         $('boss').style.display = 'none';
         MyPC.setMenu([{ id: 'tactical', label: T('arsenalMap') }, { id: 'restart', label: Game.mode === 'br' ? T('br') : T('restart') }, { id: 'menu', label: T('menu') },
@@ -518,7 +558,7 @@ var UI = (function () {
         if (Game.mode === 'story') U.deploy(U.lastStage);
         else if (Game.mode === 'br') U.startBR();
     };
-    U.quitToMenu = function () { endCapture(); closeScreen(); Game.state = 'idle'; U.title(); };
+    U.quitToMenu = function () { endCapture(); closeScreen(); persist(); Game.state = 'idle'; U.title(); };
     U.changeController = function () { endCapture(); closeScreen(); Game.state = 'idle'; U.splash(); };
 
     function setTxt(id, v) { if (lastHud[id] !== v) { lastHud[id] = v; $(id).textContent = v; } }
@@ -578,6 +618,13 @@ var UI = (function () {
             setTxt('p2a', q.on ? q.mag[q.cur] + ' / ' + (q.res[q.cur] >= 999 ? '∞' : q.res[q.cur]) : '');
         }
         if (!p.on && G.players[1]) setTxt('wname', T('backIn') + ' ' + Math.ceil(p.respawnT / 60) + ' s');
+        // a downed co-op player sees a big countdown, whichever player it is
+        var dn = '';
+        for (var di = 0; di < 2; di++) {
+            var dp = G.players[di];
+            if (dp && !dp.on && dp.respawnT > 0) dn += '<div class="dn p' + (di + 1) + '"><b>P' + (di + 1) + ' ' + esc(T('down')) + '</b><span>' + esc(T('backIn')) + ' ' + Math.ceil(dp.respawnT / 60) + ' s</span></div>';
+        }
+        if (lastHud.dn !== dn) { lastHud.dn = dn; $('downs').innerHTML = dn; }
     };
 
     U.toast = function (text, color, sub) {

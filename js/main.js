@@ -4,7 +4,7 @@
     var raf = 0, last = 0, acc = 0, STEP = 1000 / 60, info = null, stage, canvas, atlas, okGuard = 0;
 
     function defaults() {
-        return { v: 1, prog: 0, best: [], owned: START_WEAPONS.slice(), loadout: START_WEAPONS.slice(), nades: ['frag'], settings: {},
+        return { v: 1, prog: 0, best: [], owned: START_WEAPONS.slice(), loadout: START_WEAPONS.slice(), nades: ['frag'], settings: {}, credits: 0, kits: 0,
                  stats: { kills: 0, brWins: 0, brBest: 0, brGames: 0 }, seeds: [] };
     }
     // read the profile's save and repair anything missing or invalid
@@ -23,6 +23,8 @@
         out.nades = ['frag'];
         for (i = 0; i < out.prog; i++) { var S2 = CAMPAIGN[(i / 3) | 0].stages[i % 3]; if (S2.nadeUnlock && out.nades.indexOf(S2.nadeUnlock) < 0) out.nades.push(S2.nadeUnlock); }
         out.settings = s.settings && typeof s.settings === 'object' ? s.settings : {};
+        out.credits = Math.max(0, Math.min(999999, s.credits | 0));
+        out.kits = Math.max(0, Math.min(MAX_KITS, s.kits | 0));
         var st = s.stats || {};
         out.stats = { kills: st.kills | 0, brWins: st.brWins | 0, brBest: st.brBest | 0, brGames: st.brGames | 0 };
         return out;
@@ -88,6 +90,7 @@
         } else if (cmd === 'tac') { okGuard = performance.now() + 180; UI.openTactical(slot); }
         else if (cmd === 'swap') Game.cycleWeapon(p);
         else if (cmd === 'nade') Game.playerNade(undefined, p);
+        else if (cmd === 'med' && !Game.useMedkit(p)) UI.toastSmall((Game.coop ? 'P' + (slot + 1) + '  ' : '') + T(p.medkits > 0 ? 'hpFull' : 'noMedkit'));
     }
     Input.onPress = runCmd;
 
@@ -113,7 +116,7 @@
                 MyPC.ready();
             };
             atlas.onerror = function () { MyPC.fail('Could not load graphics'); };
-            atlas.src = 'assets/atlas.png?v=1.2.0';
+            atlas.src = 'assets/atlas.png?v=1.3.0';
         },
         onStart: function () {
             SFX.start(info.volume);

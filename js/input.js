@@ -3,7 +3,8 @@
  * device is ignored, so a second controller never interferes. Commands (fire, switch weapon, grenade,
  * tactical screen) are mapped per player and per kind of controller, and are remapped by pressing a button.
  *
- * Remote / keyboard commands sit on the SDK's buttons ('jump' = OK, 'run', 'cancel'). Gamepad commands sit on
+ * Remote / keyboard commands sit on any button action My PC sends from it ('jump' = OK / Enter, 'run' = Shift / X,
+ * 'runToggle' = the remote's red button / R, 'cancel', and any new one My PC may add). Gamepad commands sit on
  * the pad's own buttons ('b0'..'b17', W3C standard mapping), read directly with the Gamepad API (My PC's frame
  * allows it): that gives LB, RB, LT, RT, X, Y and the stick clicks, which the SDK actions cannot tell apart.
  * Select, Start and Home (My PC's pause / home) and the D-pad (movement) can never be mapped. If the pad
@@ -11,20 +12,23 @@
 var Input = (function () {
     'use strict';
     var held = {};                                   // device -> { action: true }
-    var KEY_BUTTONS = ['jump', 'run', 'cancel'];     // OK / A, Shift / X, Cancel
+    // actions that are never a command button: directions, OK's menu twin, and what My PC keeps for itself
+    var KEY_RESERVED = { left: 1, right: 1, up: 1, down: 1, confirm: 1, pause: 1, back: 1, guide: 1, pageUp: 1, pageDown: 1,
+                         tab: 1, tabBack: 1, padLost: 1, padConnected: 1 };
     var PAD_RESERVED = { 8: 1, 9: 1, 12: 1, 13: 1, 14: 1, 15: 1, 16: 1 };   // Select, Start, D-pad, Home
     var PAD_MAX = 18;
-    var CMDS = ['fire', 'swap', 'nade', 'tac'];
+    var CMDS = ['fire', 'swap', 'nade', 'med', 'tac'];
     var I = { p1: null, p2: null, maps: [null, null], CMDS: CMDS, onPress: null };
 
     function kind(dev) { return dev && dev.indexOf('pad') === 0 ? 'pad' : 'keys'; }
     function padBtn(b) { var m = /^b(\d+)$/.exec(b); return m && +m[1] < PAD_MAX && !PAD_RESERVED[m[1]] ? +m[1] : -1; }
-    function real(k, b) { return k === 'pad' ? padBtn(b) >= 0 : KEY_BUTTONS.indexOf(b) >= 0; }
+    function keyBtn(b) { return typeof b === 'string' && /^[A-Za-z][A-Za-z0-9]{0,23}$/.test(b) && !KEY_RESERVED.hasOwnProperty(b); }
+    function real(k, b) { return k === 'pad' ? padBtn(b) >= 0 : keyBtn(b); }
     function empty(c) { return c === 'tac' ? 'auto' : 'none'; }
     I.kind = kind;
 
-    I.defKeys = function () { return { fire: 'jump', swap: 'run', nade: 'cancel', tac: 'auto' }; };
-    I.defPad = function () { return { fire: 'b0', swap: 'b3', nade: 'b1', tac: 'auto' }; };     // A, Y, B
+    I.defKeys = function () { return { fire: 'jump', swap: 'run', nade: 'cancel', med: 'runToggle', tac: 'auto' }; };
+    I.defPad = function () { return { fire: 'b0', swap: 'b3', nade: 'b1', med: 'b2', tac: 'auto' }; };     // A, Y, B, X
     I.defMap = function () { return { keys: I.defKeys(), pad: I.defPad() }; };
     I.maps[0] = I.defMap(); I.maps[1] = I.defMap();
 
@@ -55,8 +59,12 @@ var Input = (function () {
     };
     I.clear = function () { for (var d in held) for (var a in held[d]) held[d][a] = false; };
     I.down = function (dev, action) { var h = held[dev]; return !!(h && h[action]); };
-    // any of the SDK's buttons (not directions) held on this device
-    I.anyButton = function (dev) { return I.down(dev, 'jump') || I.down(dev, 'confirm') || I.down(dev, 'run') || I.down(dev, 'cancel') || I.down(dev, 'pause'); };
+    // any button (not a direction) held on this device
+    I.anyButton = function (dev) {
+        var h = held[dev];
+        for (var a in h) if (h[a] && a !== 'left' && a !== 'right' && a !== 'up' && a !== 'down') return true;
+        return false;
+    };
 
     /* ---------------- gamepad buttons (Gamepad API) ---------------- */
 
@@ -127,9 +135,8 @@ var Input = (function () {
     // a button from the remote / keyboard (an SDK action), or from a pad that cannot be read
     I.buttonFromAction = function (dev, action) {
         if (action === 'confirm') action = 'jump';
-        if (KEY_BUTTONS.indexOf(action) < 0) return '';
-        if (kind(dev) !== 'pad') return action;
-        return action === 'jump' ? 'b0' : action === 'cancel' ? 'b1' : 'b2';
+        if (kind(dev) !== 'pad') return keyBtn(action) ? action : '';
+        return action === 'jump' ? 'b0' : action === 'cancel' ? 'b1' : action === 'run' ? 'b2' : '';
     };
 
     // give a command a button; a command already on that button takes this one's old button (swap).
@@ -165,10 +172,11 @@ var Input = (function () {
         if (b === 'jump') return T('btnA');
         if (b === 'run') return T('btnRun');
         if (b === 'cancel') return T('btnCancel');
+        if (b === 'runToggle') return T('btnRed');
         if (b === 'auto') return T('btnAuto');
         var i = padBtn(b);
         if (i >= 0) return PAD_NAMES[i] || T('btnN') + ' ' + (i + 1);
-        return '—';
+        return b === 'none' || !b ? '—' : b;
     };
     return I;
 })();

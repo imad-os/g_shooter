@@ -387,7 +387,7 @@ var Game = (function () {
             if (G.coop && mate && mate.on) { a.respawnT = 20 * 60; UI.toast((a.slot ? 'P2' : 'P1') + ' ' + T('down'), '#ff6b5a', T('backIn') + ' 20 s'); UI.hud.dirty = true; return; }
             playerDied(src); return;
         }
-        if (src && src.isPlayer) { G.kills++; UI.killMark(); }
+        if (src && src.isPlayer) { G.kills++; UI.killMark(); if (G.mode !== 'attract') UI.addCredits(CR_KILL); }
         if (G.mode === 'br' || G.mode === 'attract') { brDrop(a); brDeath(a, src); return; }
         // story drops
         var r = rnd();
@@ -1103,8 +1103,8 @@ var Game = (function () {
             for (s = 1; s < 4; s++) if (a.w[s]) a.res[s] = Math.min(WEAPONS[a.w[s]].reserve * 2, a.res[s] + Math.ceil(WEAPONS[a.w[s]].mag * (s === 3 ? 1 : 1.5)));
             msg = T('ammo');
         } else if (pk.kind === 'med') {
-            if (a.isPlayer && a.medkits >= 3 && a.hp >= a.maxHp) return;
-            if (a.isPlayer && a.medkits < 3) { a.medkits++; msg = T('medkit'); }
+            if (a.isPlayer && a.medkits >= MAX_CARRY && a.hp >= a.maxHp) return;
+            if (a.isPlayer && a.medkits < MAX_CARRY) { a.medkits++; msg = T('medkit'); }
             else { a.hp = Math.min(a.maxHp, a.hp + 50); msg = T('health'); }
         } else if (pk.kind === 'armor') {
             if (a.armor >= 100) return;
@@ -1298,12 +1298,14 @@ var Game = (function () {
         var nu = save.nades, p = null;
         for (var pl = 0; pl < (G.coop ? 2 : 1); pl++) {
             var q = spawnActor(World.spawnX * TILE + 16, World.spawnY * TILE + 16 + (pl ? 30 : (G.coop ? -14 : 0)), 0,
-                { sprite: 'survivor1', hp: 100, speed: 2.35, tint: pl ? '#5dff7a' : null }, { player: true, angle: 0, armor: 50, slot: pl });
+                { sprite: 'survivor1', hp: 100, speed: 2.35, tint: P_TINT[pl] }, { player: true, angle: 0, armor: 50, slot: pl });
             G.players[pl] = q;
             var lo = pl ? save.loadout2 || save.loadout : save.loadout;
             for (var s = 0; s < 4; s++) if (lo[s]) giveWeapon(q, lo[s], false);
             q.cur = lo[2] ? 2 : 0;
             q.medkits = isBoss ? 2 : 1;
+            var take = Math.min(save.kits | 0, MAX_CARRY - q.medkits);          // medkits bought in the shop
+            if (take > 0) { q.medkits += take; save.kits -= take; }
             q.nades[0] = 2; q.nades[1] = nu.indexOf('flash') >= 0 ? 1 : 0; q.nades[2] = nu.indexOf('smoke') >= 0 ? 1 : 0; q.nades[3] = nu.indexOf('fire') >= 0 ? 1 : 0;
         }
         p = G.player = G.players[0];
@@ -1402,7 +1404,7 @@ var Game = (function () {
         }
         for (k = 0; k < spots.length; k++) {
             var isP = !attract && k === 0;
-            var def = isP ? { sprite: 'survivor1', hp: 100, speed: 2.35, wpn: 'p9' } : { sprite: sprites[k % sprites.length], hp: 100, speed: 1.95, wpn: 'p9', acc: 1.35, react: 34, role: 'rifleman', burst: [3, 6], name: names[k % names.length] };
+            var def = isP ? { sprite: 'survivor1', hp: 100, speed: 2.35, wpn: 'p9', tint: P_TINT[0] } : { sprite: sprites[k % sprites.length], hp: 100, speed: 1.95, wpn: 'p9', acc: 1.35, react: 34, role: 'rifleman', burst: [3, 6], name: names[k % names.length] };
             var a = spawnActor(spots[k][0], spots[k][1], k + 2, def, { player: isP, armor: 0 });
             if (!a) continue;
             a.name = isP ? '' : names[k % names.length];

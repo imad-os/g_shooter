@@ -21,7 +21,16 @@ grenades to flush you out. Walls, crates and rocks really stop bullets, so posit
   with **Players & Controllers**, or from the My PC pause menu (Back) → **Change controller**, which always
   works with the TV remote.
 - **Gamepads** are supported through My PC (up to 4). Default buttons: A fires, Y switches weapon,
-  B throws a grenade, A with nothing in sight opens the Tactical screen.
+  B throws a grenade, X uses a medkit, A with nothing in sight opens the Tactical screen.
+- **TV remote**: My PC passes only OK and the **red button** to games (Channel Up / Down, Play / Pause and
+  Back are My PC's; the green, yellow and blue buttons are not passed on). OK fires, the red button uses a
+  medkit; both can be remapped. Any new remote button My PC passes on later can be mapped with no update.
+- **Shop** (main menu, or the Tactical screen in play): kills (10), cleared stages (100, +150 for a boss)
+  and Battle Royale wins (200) earn credits. A medkit costs 100: bought in play it goes straight into your
+  kit (3 max); bought from the main menu it goes to a reserve (6 max) that tops up your kit at the next
+  mission start.
+- Player 1 is shaded **blue** and Player 2 **green** (no ring around them). A downed co-op player sees a
+  big *back in N s* countdown.
 - **Remap buttons** per player in *Players & Controllers → Remap buttons*: pick Fire, Switch weapon, Throw
   grenade or Tactical screen, then press the button you want (10 s to answer). Gamepads can use any button:
   A, B, X, Y, LB, RB, LT, RT and the stick clicks (read with the Gamepad API, which My PC's frame allows).
@@ -47,7 +56,8 @@ Gamepads and a second player need My PC: opened directly in a browser, the SDK o
 | OK (hold) | Fire: aim locks onto the best enemy in sight. Stand still for better accuracy (snipers zoom out). |
 | OK with nothing in sight | Tactical screen (time stops): switch weapon, throw a grenade, use a medkit, full map |
 | Back | My PC pause menu: *Arsenal & Map*, *Restart*, *Main menu* |
-| Gamepad extras | Y cycles weapons · B throws a grenade (remap to any button, e.g. RT to fire) |
+| Red button (R on a keyboard) | Use a medkit (remappable) |
+| Gamepad extras | Y cycles weapons · B throws a grenade · X uses a medkit (remap to any button, e.g. RT to fire) |
 | Keyboard extras | Shift / X cycles weapons (remappable) |
 
 In a browser: arrows + Enter (or Space / Z to fire), **Esc** pauses.

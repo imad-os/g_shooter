@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Steel Vigil</title>
 <link rel="icon" href="icon.svg">
-<link rel="stylesheet" href="css/fonts.css?v=1.2.0">
+<link rel="stylesheet" href="css/fonts.css?v=1.3.0">
 <style>
   html, body { margin: 0; height: 100%; background: #05080c; overflow: hidden; }
   * { box-sizing: border-box; }
@@ -228,7 +228,7 @@
   .note { font-size: calc(var(--u)*3); color: #9fb0bd; margin: calc(var(--u)*0.6) 0 0; }
   .note.warn { color: #ffb648; }
   .pdot { display: inline-block; width: calc(var(--u)*1.8); height: calc(var(--u)*1.8); border-radius: 50%; margin-inline-end: calc(var(--u)*1); vertical-align: middle; }
-  .pdot.p1 { background: #3ee6ff; } .pdot.p2 { background: #5dff7a; }
+  .pdot.p1 { background: #4aa8ff; } .pdot.p2 { background: #5dff7a; }
   .tag.coop { color: #5dff7a; background: rgba(93,255,122,0.12); }
   #p2hud { bottom: calc(var(--u)*5); left: 50%; transform: translateX(-50%); width: 26%; display: flex; align-items: center; gap: calc(var(--u)*1.4);
            border-inline-start-color: #5dff7a; padding: calc(var(--u)*0.9) calc(var(--u)*1.6); }
@@ -240,6 +240,11 @@
   .p2w b { color: #c9ffd2; text-transform: uppercase; font-size: calc(var(--u)*2.9); white-space: nowrap; }
   .p2w span { color: #9fb0bd; font-weight: 700; direction: ltr; }
   #hud.coop #hint { bottom: calc(var(--u)*13); }
+  #downs { position: absolute; top: calc(var(--u)*38); left: 0; right: 0; display: flex; justify-content: center; gap: calc(var(--u)*3); pointer-events: none; }
+  #downs .dn { display: flex; flex-direction: column; align-items: center; padding: calc(var(--u)*1.2) calc(var(--u)*3); background: rgba(3,7,11,0.78); border-top: calc(var(--u)*0.5) solid #4aa8ff; }
+  #downs .dn.p2 { border-color: #5dff7a; }
+  #downs .dn b { font-size: calc(var(--u)*4); color: #ff6b5a; text-transform: uppercase; letter-spacing: 0.06em; }
+  #downs .dn span { font-size: calc(var(--u)*5); font-weight: 700; color: #fff; direction: ltr; }
   #hud.coop #toasts { bottom: calc(var(--u)*24); }
 
   #paused { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(3,7,11,0.8); gap: calc(var(--u)*1.5); }
@@ -272,6 +277,7 @@
       <div class="p2w"><b id="p2w"></b><span id="p2a"></span></div>
     </div>
     <div id="hint"></div>
+    <div id="downs"></div>
     <div id="toasts"></div>
     <div id="toast"></div>
     <div id="killmark"></div>
@@ -280,16 +286,16 @@
   <div id="paused"><b id="p-title"></b><span id="p-sub"></span></div>
 </div>
 <script src="https://imad-os.github.io/g/sdk/mypc-sdk.js"></script>
-<script src="js/atlas.js?v=1.2.0"></script>
-<script src="js/sounds.js?v=1.2.0"></script>
-<script src="js/i18n.js?v=1.2.0"></script>
-<script src="js/input.js?v=1.2.0"></script>
-<script src="js/data.js?v=1.2.0"></script>
-<script src="js/audio.js?v=1.2.0"></script>
-<script src="js/world.js?v=1.2.0"></script>
-<script src="js/render.js?v=1.2.0"></script>
-<script src="js/game.js?v=1.2.0"></script>
-<script src="js/ui.js?v=1.2.0"></script>
-<script src="js/main.js?v=1.2.0"></script>
+<script src="js/atlas.js?v=1.3.0"></script>
+<script src="js/sounds.js?v=1.3.0"></script>
+<script src="js/i18n.js?v=1.3.0"></script>
+<script src="js/input.js?v=1.3.0"></script>
+<script src="js/data.js?v=1.3.0"></script>
+<script src="js/audio.js?v=1.3.0"></script>
+<script src="js/world.js?v=1.3.0"></script>
+<script src="js/render.js?v=1.3.0"></script>
+<script src="js/game.js?v=1.3.0"></script>
+<script src="js/ui.js?v=1.3.0"></script>
+<script src="js/main.js?v=1.3.0"></script>
 </body>
 </html>
